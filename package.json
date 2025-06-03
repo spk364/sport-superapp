@@ -9,13 +9,42 @@
   "scripts": {
     "trainer:dev": "npm run start --workspace=apps/trainer-app",
     "trainer:build": "npm run build --workspace=apps/trainer-app",
+    "trainer:test": "npm run test --workspace=apps/trainer-app",
     "client:dev": "npm run start --workspace=apps/client-app",
     "client:build": "npm run build --workspace=apps/client-app",
+    "client:test": "npm run test --workspace=apps/client-app",
     "install:all": "npm install",
-    "clean": "npm run clean --workspaces",
-    "build:all": "npm run build --workspaces"
+    "clean": "rm -rf apps/*/build apps/*/node_modules node_modules",
+    "build:all": "npm run build --workspaces",
+    "test:all": "npm run test --workspaces",
+    "lint:all": "npm run lint --workspaces --if-present",
+    "deploy:local": "./scripts/local-deploy.sh",
+    "deploy:netlify": "netlify deploy --prod --dir=apps/client-app/build",
+    "deploy:vercel": "cd apps/trainer-app && vercel --prod",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
   },
   "devDependencies": {
     "typescript": "^4.9.5"
-  }
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/fitness-apps-monorepo.git"
+  },
+  "keywords": [
+    "fitness",
+    "trainer",
+    "pwa",
+    "react",
+    "monorepo",
+    "telegram-webapp"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
 } 
