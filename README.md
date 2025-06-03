@@ -1,4 +1,4 @@
-# 🏋️ Fitness Trainer Platform
+# 🏋️ Sport SuperApp
 
 A comprehensive monorepo containing applications for fitness trainers and their clients, built with modern web technologies and designed for scalability.
 
@@ -35,8 +35,8 @@ Management platform for fitness trainers with:
 
 ```bash
 # Clone repository
-git clone https://github.com/spk364/fitness-trainer-platform.git
-cd fitness-trainer-platform
+git clone https://github.com/spk364/sport-superapp.git
+cd sport-superapp
 
 # Install dependencies
 npm install
@@ -117,7 +117,7 @@ npm run deploy:vercel    # Deploy trainer to Vercel
 ## 🏗️ Project Structure
 
 ```
-fitness-trainer-platform/
+sport-superapp/
 ├── apps/
 │   ├── client-app/          # PWA for fitness clients
 │   │   ├── src/
