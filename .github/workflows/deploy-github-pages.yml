@@ -1,0 +1,133 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+
+    - name: Build Client App
+      run: |
+        cd apps/client-app
+        npm ci
+        npm run build
+        
+    - name: Build Trainer App  
+      run: |
+        cd apps/trainer-app
+        npm ci
+        npm run build
+
+    - name: Create deployment structure
+      run: |
+        mkdir -p dist
+        mkdir -p dist/client
+        mkdir -p dist/trainer
+        
+        # Copy client app
+        cp -r apps/client-app/build/* dist/client/
+        
+        # Copy trainer app  
+        cp -r apps/trainer-app/build/* dist/trainer/
+        
+        # Create index.html with navigation
+        cat > dist/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Sport SuperApp</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+        </head>
+        <body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen">
+            <div class="container mx-auto px-4 py-16">
+                <div class="text-center mb-12">
+                    <h1 class="text-5xl font-bold text-gray-800 mb-4">🏋️ Sport SuperApp</h1>
+                    <p class="text-xl text-gray-600 mb-8">Comprehensive fitness platform for trainers and clients</p>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    <!-- Client App -->
+                    <div class="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
+                        <div class="text-4xl mb-4">📱</div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Client App</h2>
+                        <p class="text-gray-600 mb-6">Progressive Web App for fitness clients with dashboard, calendar, and progress tracking.</p>
+                        <div class="space-y-2 mb-6 text-sm text-gray-500">
+                            <div>✓ Personal Dashboard</div>
+                            <div>✓ Interactive Calendar</div>
+                            <div>✓ Progress Tracking</div>
+                            <div>✓ PWA Support</div>
+                        </div>
+                        <a href="./client/" class="inline-block bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors">
+                            Open Client App →
+                        </a>
+                    </div>
+                    
+                    <!-- Trainer App -->
+                    <div class="bg-white rounded-2xl shadow-lg p-8 hover:shadow-xl transition-shadow">
+                        <div class="text-4xl mb-4">👨‍💼</div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Trainer App</h2>
+                        <p class="text-gray-600 mb-6">Management platform for fitness trainers with client management and analytics.</p>
+                        <div class="space-y-2 mb-6 text-sm text-gray-500">
+                            <div>✓ Client Management</div>
+                            <div>✓ Workout Planning</div>
+                            <div>✓ Analytics Dashboard</div>
+                            <div>✓ Payment Tracking</div>
+                        </div>
+                        <a href="./trainer/" class="inline-block bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600 transition-colors">
+                            Open Trainer App →
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-12">
+                    <p class="text-gray-500">
+                        <a href="https://github.com/spk364/sport-superapp" class="text-blue-500 hover:underline">View on GitHub</a>
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        EOF
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+      
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './dist'
+        
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4 

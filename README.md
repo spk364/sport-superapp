@@ -64,7 +64,13 @@ docker-compose up trainer-app
 
 This monorepo supports multiple deployment strategies:
 
-### 🌐 Netlify (Client App)
+### 🌐 GitHub Pages (Free Hosting)
+- **Live Demo**: https://spk364.github.io/sport-superapp/
+- Automatic deployments from `main` branch
+- Both apps hosted on same domain
+- Zero configuration required
+
+### 🌍 Netlify (Client App)
 - Automatic deployments from `main` branch
 - PWA optimization included
 - Custom domain support
@@ -83,6 +89,13 @@ This monorepo supports multiple deployment strategies:
 - Automated testing and deployment
 - Multi-environment support (staging/production)
 - Security scanning included
+
+## 🎯 Live Demo
+
+🚀 **Try the live demo**: https://spk364.github.io/sport-superapp/
+
+- **Client App**: https://spk364.github.io/sport-superapp/client/
+- **Trainer App**: https://spk364.github.io/sport-superapp/trainer/
 
 ## 📚 Documentation
 

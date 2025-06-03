@@ -1,7 +1,8 @@
 {
-  "name": "trainer-mini-app",
+  "name": "trainer-app",
   "version": "0.1.0",
   "private": true,
+  "homepage": "/sport-superapp/trainer",
   "dependencies": {
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
