@@ -1,0 +1,44 @@
+{
+  "version": 2,
+  "name": "fitness-client-app",
+  "builds": [
+    {
+      "src": "apps/client-app/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "src": "/manifest.json",
+      "headers": {
+        "Cache-Control": "public, max-age=0, must-revalidate"
+      }
+    },
+    {
+      "src": "/sw.js",
+      "headers": {
+        "Cache-Control": "public, max-age=0, must-revalidate"
+      }
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "installCommand": "npm install",
+  "buildCommand": "cd apps/client-app && npm run build",
+  "outputDirectory": "apps/client-app/build",
+  "env": {
+    "NODE_ENV": "production",
+    "REACT_APP_VERSION": "1.0.0"
+  }
+} 

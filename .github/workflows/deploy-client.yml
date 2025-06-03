@@ -1,0 +1,68 @@
+name: Deploy Client App
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'apps/client-app/**'
+      - 'package.json'
+      - '.github/workflows/deploy-client.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'apps/client-app/**'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: |
+        npm ci
+        
+    - name: Build client app
+      run: |
+        npm run client:build
+        
+    - name: Run tests (if available)
+      run: |
+        cd apps/client-app
+        npm test -- --coverage --watchAll=false
+      continue-on-error: true
+        
+    - name: Deploy to Netlify
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: nwtgck/actions-netlify@v2.1
+      with:
+        publish-dir: './apps/client-app/build'
+        production-branch: main
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        deploy-message: "Deploy from GitHub Actions"
+        enable-pull-request-comment: false
+        enable-commit-comment: true
+        overwrites-pull-request-comment: true
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        
+    - name: Upload build artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: client-build
+        path: apps/client-app/build
+        retention-days: 30 

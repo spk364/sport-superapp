@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # Client App (for clients)
+  client-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: client-runner
+    ports:
+      - "3001:80"
+    container_name: fitness-client
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - fitness-network
+
+  # Trainer App (for trainers)  
+  trainer-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: trainer-runner
+    ports:
+      - "3000:80"
+    container_name: fitness-trainer
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - fitness-network
+
+  # Nginx reverse proxy (optional)
+  nginx-proxy:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - client-app
+      - trainer-app
+    container_name: fitness-proxy
+    restart: unless-stopped
+    networks:
+      - fitness-network
+
+networks:
+  fitness-network:
+    driver: bridge
+
+volumes:
+  ssl_data: 
