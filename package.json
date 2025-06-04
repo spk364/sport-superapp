@@ -1,5 +1,5 @@
 {
-  "name": "fitness-apps-monorepo",
+  "name": "sport-superapp",
   "version": "1.0.0",
   "private": true,
   "workspaces": [
@@ -7,6 +7,15 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "concurrently \"npm run trainer:dev\" \"npm run client:dev\"",
+    "dev:client": "npm run start --workspace=apps/client-app",
+    "dev:trainer": "npm run start --workspace=apps/trainer-app",
+    "build": "npm run build:all",
+    "build:client": "npm run build --workspace=apps/client-app",
+    "build:trainer": "npm run build --workspace=apps/trainer-app",
+    "test": "npm run test:all",
+    "test:client": "npm run test --workspace=apps/client-app",
+    "test:trainer": "npm run test --workspace=apps/trainer-app",
     "trainer:dev": "npm run start --workspace=apps/trainer-app",
     "trainer:build": "npm run build --workspace=apps/trainer-app",
     "trainer:test": "npm run test --workspace=apps/trainer-app",
@@ -27,6 +36,7 @@
     "docker:logs": "docker-compose logs -f"
   },
   "devDependencies": {
+    "concurrently": "^8.2.2",
     "typescript": "^4.9.5"
   },
   "engines": {
@@ -35,7 +45,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-username/fitness-apps-monorepo.git"
+    "url": "git+https://github.com/spk364/sport-superapp.git"
   },
   "keywords": [
     "fitness",
@@ -45,6 +55,6 @@
     "monorepo",
     "telegram-webapp"
   ],
-  "author": "Your Name",
+  "author": "spk364",
   "license": "MIT"
 } 

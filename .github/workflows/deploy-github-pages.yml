@@ -33,19 +33,15 @@ jobs:
 
     - name: Install dependencies
       run: |
-        npm install
+        npm ci
 
     - name: Build Client App
       run: |
-        cd apps/client-app
-        npm install
-        npm run build
+        npm run client:build
         
     - name: Build Trainer App  
       run: |
-        cd apps/trainer-app
-        npm install
-        npm run build
+        npm run trainer:build
 
     - name: Create deployment structure
       run: |
