@@ -1,0 +1,31 @@
+{
+  "chat_history": [],
+  "context": {
+    "goals": [
+      "Похудение"
+    ],
+    "fitness_level": "Начальный (новичок)",
+    "equipment": [
+      "Собственный вес"
+    ],
+    "limitations": [
+      "Проблемы со спиной"
+    ],
+    "nutrition_goal": "Похудение (дефицит калорий)",
+    "food_preferences": [
+      "Обычное питание"
+    ],
+    "allergies": [
+      "Глютен"
+    ],
+    "daily_calories": 3113,
+    "height": 191,
+    "weight": 96,
+    "age": 30,
+    "gender": "Мужской",
+    "profile_edit_mode": true
+  },
+  "current_program": null,
+  "questionnaire_state": null,
+  "created_at": "2025-06-11T18:58:34.727112"
+}

@@ -154,6 +154,65 @@ class LLMService:
             }
         }
     
+    def _create_fallback_workout_program(self, client_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a basic fallback workout program if LLM fails"""
+        goal = client_data.get("goal", "общая физическая подготовка")
+        level = client_data.get("level", "начальный")
+        equipment = client_data.get("equipment", ["собственный вес"])
+        
+        # Basic program structure
+        basic_exercises = {
+            "upper_body": ["Отжимания", "Планка", "Подтягивания"],
+            "lower_body": ["Приседания", "Выпады", "Подъемы на носки"],
+            "cardio": ["Бег на месте", "Прыжки", "Берпи"]
+        }
+        
+        # Adjust difficulty based on level
+        if "начальный" in level.lower():
+            sets, reps = 2, "8-10"
+        elif "средний" in level.lower():
+            sets, reps = 3, "10-12"
+        else:  # advanced
+            sets, reps = 4, "12-15"
+        
+        weeks = []
+        for week_num in range(1, 5):  # 4 weeks
+            workouts = []
+            
+            # 3 workouts per week
+            workout_types = ["Верх тела", "Низ тела", "Кардио"]
+            exercise_groups = ["upper_body", "lower_body", "cardio"]
+            
+            for i, (workout_type, exercise_group) in enumerate(zip(workout_types, exercise_groups)):
+                exercises = []
+                for exercise_name in basic_exercises[exercise_group]:
+                    exercises.append({
+                        "name": exercise_name,
+                        "sets": sets,
+                        "reps": reps,
+                        "weight": 0,
+                        "notes": ""
+                    })
+                
+                workouts.append({
+                    "name": workout_type,
+                    "exercises": exercises
+                })
+            
+            weeks.append({
+                "week_number": week_num,
+                "workouts": workouts
+            })
+        
+        return {
+            "goal": goal,
+            "level": level,
+            "duration_weeks": 4,
+            "workouts_per_week": 3,
+            "equipment": equipment,
+            "weeks": weeks
+        }
+
     async def generate_workout_program(
         self,
         client_data: Dict[str, Any]
@@ -174,89 +233,111 @@ class LLMService:
             if field not in client_data:
                 raise ValidationError(f"Отсутствует обязательное поле: {field}")
         
-        # Формирование промпта
-        equipment_str = ", ".join(client_data.get("equipment", ["собственный вес"]))
-        limitations_str = ", ".join(client_data.get("limitations", ["нет"]))
-        
-        user_prompt = f"""
-        Создай тренировочную программу на 4 недели с параметрами:
-        - Цель: {client_data["goal"]}
-        - Уровень: {client_data["level"]}
-        - Тренировок в неделю: {client_data["sessions_per_week"]}
-        - Доступное оборудование: {equipment_str}
-        - Ограничения: {limitations_str}
-        
-        Ответ должен быть СТРОГО в JSON формате:
-        {{
-            "program_id": "uuid",
-            "weeks": [
-                {{
-                    "week_number": 1,
-                    "days": [
-                        {{
-                            "day_of_week": "понедельник",
-                            "workout_type": "силовая",
-                            "exercises": [
-                                {{"name": "Приседания", "sets": 3, "reps": 12, "weight": 0, "notes": ""}},
-                                {{"name": "Отжимания", "sets": 3, "reps": 10, "notes": ""}}
-                            ]
-                        }}
-                    ]
-                }}
-            ],
-            "generated_at": "{datetime.now().isoformat()}"
-        }}
-        
-        Не добавляй лишний текст, только JSON.
-        """
-        
-        messages = [
-            {
-                "role": "system", 
-                "content": self.system_prompts["program_generator"]
-            },
-            {
-                "role": "user",
-                "content": user_prompt
-            }
-        ]
-        
-        # Выполнение запроса
-        result = await self._make_openai_request(
-            messages=messages,
-            request_type=LLMRequestType.PROGRAM_CREATE,
-            max_tokens=2000  # Увеличенный лимит для программы
-        )
-        
-        # Парсинг JSON
         try:
-            # Убираем markdown блоки если есть
-            json_content = result["content"].strip()
-            if json_content.startswith("```json"):
-                json_content = json_content[7:]  # убираем ```json
-            if json_content.endswith("```"):
-                json_content = json_content[:-3]  # убираем ```
-            json_content = json_content.strip()
+            # Try LLM generation first
+            equipment_str = ", ".join(client_data.get("equipment", ["собственный вес"]))
+            limitations_str = ", ".join(client_data.get("limitations", ["нет"]))
             
-            program_data = json.loads(json_content)
+            user_prompt = f"""
+            Создай тренировочную программу на 4 недели:
+            Цель: {client_data["goal"]}
+            Уровень: {client_data["level"]}
+            Оборудование: {equipment_str}
             
-            # Валидация структуры
-            if "weeks" not in program_data:
-                raise ValueError("Отсутствует структура weeks")
+            JSON формат:
+            {{
+                "goal": "{client_data['goal']}",
+                "level": "{client_data['level']}",
+                "duration_weeks": 4,
+                "workouts_per_week": 3,
+                "equipment": ["{equipment_str}"],
+                "weeks": [
+                    {{
+                        "week_number": 1,
+                        "workouts": [
+                            {{
+                                "name": "Тренировка 1",
+                                "exercises": [
+                                    {{"name": "Приседания", "sets": 3, "reps": "10-12", "weight": 0}}
+                                ]
+                            }}
+                        ]
+                    }}
+                ]
+            }}
+            """
+            
+            messages = [
+                {
+                    "role": "system", 
+                    "content": "Ты фитнес-тренер. Отвечай ТОЛЬКО валидным JSON."
+                },
+                {
+                    "role": "user",
+                    "content": user_prompt
+                }
+            ]
+            
+            # Выполнение запроса
+            result = await self._make_openai_request(
+                messages=messages,
+                request_type=LLMRequestType.PROGRAM_CREATE,
+                max_tokens=1500  # Reduced for simpler response
+            )
+            
+            # Парсинг JSON
+            try:
+                # Clean response
+                cleaned_content = self._clean_json_response(result["content"])
+                program_data = json.loads(cleaned_content)
+                
+                # Валидация структуры
+                if "weeks" not in program_data:
+                    raise ValueError("Отсутствует структура weeks")
+                
+                return {
+                    "program": program_data,
+                    "metadata": {
+                        "tokens_used": result["usage"]["total_tokens"],
+                        "model": result["model"],
+                        "latency_ms": result["latency_ms"],
+                        "source": "llm"
+                    }
+                }
+                
+            except json.JSONDecodeError as e:
+                logger.warning(f"LLM ответ не валидный JSON: {e}")
+                logger.info("Используем fallback программу тренировок")
+                
+                # Use fallback program
+                fallback_program = self._create_fallback_workout_program(client_data)
+                
+                return {
+                    "program": fallback_program,
+                    "metadata": {
+                        "tokens_used": result["usage"]["total_tokens"],
+                        "model": result["model"],
+                        "latency_ms": result["latency_ms"],
+                        "source": "fallback"
+                    }
+                }
+        
+        except Exception as e:
+            logger.error(f"Ошибка генерации программы тренировок: {e}")
+            logger.info("Используем fallback программу тренировок")
+            
+            # Create fallback program
+            fallback_program = self._create_fallback_workout_program(client_data)
             
             return {
-                "program": program_data,
+                "program": fallback_program,
                 "metadata": {
-                    "tokens_used": result["usage"]["total_tokens"],
-                    "model": result["model"],
-                    "latency_ms": result["latency_ms"]
+                    "tokens_used": 0,
+                    "model": "fallback",
+                    "latency_ms": 0,
+                    "source": "fallback"
                 }
             }
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Ошибка парсинга JSON программы: {e}")
-            logger.error(f"Ответ LLM: {result['content']}")
-            raise LLMServiceError("Ошибка формирования программы тренировок")
     
     async def adjust_workout_program(
         self,
@@ -463,6 +544,92 @@ class LLMService:
             }
         }
 
+    def _clean_json_response(self, content: str) -> str:
+        """Clean and fix common JSON issues in LLM responses"""
+        content = content.strip()
+        
+        # Remove markdown code blocks if present
+        if content.startswith('```json'):
+            content = content[7:]
+        if content.startswith('```'):
+            content = content[3:]
+        if content.endswith('```'):
+            content = content[:-3]
+        
+        # Find JSON block
+        json_start = content.find('{')
+        json_end = content.rfind('}')
+        
+        if json_start >= 0 and json_end > json_start:
+            content = content[json_start:json_end+1]
+        
+        # Fix common issues
+        content = content.replace("'", '"')  # Single quotes to double quotes
+        content = content.replace(',,', ',')  # Remove double commas
+        content = content.replace(',}', '}')  # Remove trailing commas before }
+        content = content.replace(',]', ']')  # Remove trailing commas before ]
+        
+        return content
+
+    def _create_fallback_nutrition_plan(self, nutrition_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a basic fallback nutrition plan if LLM fails"""
+        daily_calories = nutrition_data["daily_calories"]
+        goal = nutrition_data["nutrition_goal"]
+        
+        # Calculate macros
+        if "похудение" in goal.lower():
+            protein_ratio, fat_ratio, carb_ratio = 0.35, 0.30, 0.35
+        elif "набор" in goal.lower():
+            protein_ratio, fat_ratio, carb_ratio = 0.30, 0.25, 0.45
+        else:
+            protein_ratio, fat_ratio, carb_ratio = 0.30, 0.30, 0.40
+        
+        daily_protein = int((daily_calories * protein_ratio) / 4)
+        daily_fats = int((daily_calories * fat_ratio) / 9)
+        daily_carbs = int((daily_calories * carb_ratio) / 4)
+        
+        # Basic meal plan
+        meal_calories = daily_calories // 4
+        
+        return {
+            "goal": goal,
+            "daily_calories": daily_calories,
+            "daily_protein": daily_protein,
+            "daily_fats": daily_fats,
+            "daily_carbs": daily_carbs,
+            "days": [
+                {
+                    "day_name": day,
+                    "meals": [
+                        {
+                            "name": "Завтрак",
+                            "time": "08:00",
+                            "calories": meal_calories,
+                            "dishes": [{"name": "Завтрак по плану", "calories": meal_calories}]
+                        },
+                        {
+                            "name": "Обед", 
+                            "time": "13:00",
+                            "calories": meal_calories,
+                            "dishes": [{"name": "Обед по плану", "calories": meal_calories}]
+                        },
+                        {
+                            "name": "Ужин",
+                            "time": "18:00", 
+                            "calories": meal_calories,
+                            "dishes": [{"name": "Ужин по плану", "calories": meal_calories}]
+                        },
+                        {
+                            "name": "Перекус",
+                            "time": "21:00",
+                            "calories": meal_calories,
+                            "dishes": [{"name": "Перекус по плану", "calories": meal_calories}]
+                        }
+                    ]
+                }
+                for day in ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+            ]
+        }
 
     async def generate_nutrition_plan(
         self,
@@ -484,101 +651,104 @@ class LLMService:
             if field not in nutrition_data:
                 raise ValidationError(f"Отсутствует обязательное поле: {field}")
         
-        # Формирование промпта
-        preferences_str = ", ".join(nutrition_data.get("food_preferences", ["обычное питание"]))
-        allergies_str = ", ".join(nutrition_data.get("allergies", ["нет"]))
-        
-        user_prompt = f"""
-        Создай план питания на 7 дней с параметрами:
-        - Цель питания: {nutrition_data["nutrition_goal"]}
-        - Калории в день: {nutrition_data["daily_calories"]}
-        - Пищевые предпочтения: {preferences_str}
-        - Аллергии/ограничения: {allergies_str}
-        - Вес: {nutrition_data.get("weight", 70)} кг
-        - Пол: {nutrition_data.get("gender", "")}
-        - Цели фитнеса: {", ".join(nutrition_data.get("fitness_goals", []))}
-        
-        Ответ должен быть СТРОГО в JSON формате:
-        {{
-            "goal": "цель питания",
-            "daily_calories": калорий_в_день,
-            "daily_protein": граммы_белка,
-            "daily_fats": граммы_жиров,
-            "daily_carbs": граммы_углеводов,
-            "days": [
-                {{
-                    "day_name": "Понедельник",
-                    "meals": [
-                        {{
-                            "name": "Завтрак",
-                            "time": "08:00",
-                            "calories": 400,
-                            "dishes": [
-                                {{
-                                    "name": "Овсянка с ягодами",
-                                    "portion": "200г",
-                                    "calories": 300,
-                                    "protein": 10,
-                                    "fats": 5,
-                                    "carbs": 50,
-                                    "recipe": {{
-                                        "ingredients": "овсянка 50г, молоко 150мл, ягоды 50г",
-                                        "instructions": "Сварить овсянку на молоке, добавить ягоды",
-                                        "cooking_time": 10,
-                                        "protein": 10,
-                                        "fats": 5,
-                                        "carbs": 50,
-                                        "calories": 300
-                                    }}
-                                }}
-                            ]
-                        }}
-                    ]
-                }}
-            ]
-        }}
-        
-        Учитывай:
-        - Сбалансированность БЖУ
-        - Разнообразие блюд
-        - Пищевые предпочтения и аллергии
-        - Время приготовления (простые рецепты)
-        - Доступность продуктов
-        """
-        
-        messages = [
-            {
-                "role": "system",
-                "content": self.system_prompts["program_generator"] + 
-                          "\n\nТы также эксперт по питанию и создаешь планы питания."
-            },
-            {
-                "role": "user",
-                "content": user_prompt
-            }
-        ]
-        
-        result = await self._make_openai_request(
-            messages=messages,
-            request_type=LLMRequestType.PROGRAM_GENERATE,
-            max_tokens=2500
-        )
-        
         try:
-            nutrition_plan = json.loads(result["content"])
+            # Try LLM generation first
+            preferences_str = ", ".join(nutrition_data.get("food_preferences", ["обычное питание"]))
+            allergies_str = ", ".join(nutrition_data.get("allergies", ["нет"]))
+            
+            user_prompt = f"""
+            Создай простой план питания:
+            Цель: {nutrition_data["nutrition_goal"]}
+            Калории: {nutrition_data["daily_calories"]}
+            
+            Формат JSON:
+            {{
+                "goal": "{nutrition_data['nutrition_goal']}",
+                "daily_calories": {nutrition_data["daily_calories"]},
+                "daily_protein": 150,
+                "daily_fats": 80,
+                "daily_carbs": 300,
+                "days": [
+                    {{
+                        "day_name": "Понедельник",
+                        "meals": [
+                            {{
+                                "name": "Завтрак",
+                                "calories": 500,
+                                "dishes": [{{
+                                    "name": "Овсянка",
+                                    "calories": 300
+                                }}]
+                            }}
+                        ]
+                    }}
+                ]
+            }}
+            """
+            
+            messages = [
+                {
+                    "role": "system",
+                    "content": "Ты эксперт по питанию. Отвечай ТОЛЬКО валидным JSON."
+                },
+                {
+                    "role": "user",
+                    "content": user_prompt
+                }
+            ]
+            
+            result = await self._make_openai_request(
+                messages=messages,
+                request_type=LLMRequestType.PROGRAM_CREATE,
+                max_tokens=1500  # Reduced to encourage simpler response
+            )
+            
+            try:
+                nutrition_plan = json.loads(result["content"])
+                
+                return {
+                    "plan": nutrition_plan,
+                    "metadata": {
+                        "tokens_used": result["usage"]["total_tokens"],
+                        "model": result["model"],
+                        "latency_ms": result["latency_ms"],
+                        "source": "llm"
+                    }
+                }
+                
+            except json.JSONDecodeError as e:
+                logger.warning(f"LLM ответ не валидный JSON: {e}")
+                logger.info("Используем fallback план питания")
+                
+                # Use fallback plan
+                fallback_plan = self._create_fallback_nutrition_plan(nutrition_data)
+                
+                return {
+                    "plan": fallback_plan,
+                    "metadata": {
+                        "tokens_used": result["usage"]["total_tokens"],
+                        "model": result["model"],
+                        "latency_ms": result["latency_ms"],
+                        "source": "fallback"
+                    }
+                }
+        
+        except Exception as e:
+            logger.error(f"Ошибка генерации плана питания: {e}")
+            logger.info("Используем fallback план питания")
+            
+            # Create fallback plan
+            fallback_plan = self._create_fallback_nutrition_plan(nutrition_data)
             
             return {
-                "plan": nutrition_plan,
+                "plan": fallback_plan,
                 "metadata": {
-                    "tokens_used": result["usage"]["total_tokens"],
-                    "model": result["model"],
-                    "latency_ms": result["latency_ms"]
+                    "tokens_used": 0,
+                    "model": "fallback",
+                    "latency_ms": 0,
+                    "source": "fallback"
                 }
             }
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Ошибка парсинга плана питания: {e}")
-            raise LLMServiceError("Ошибка создания плана питания")
     
     async def generate_shopping_list(
         self,
@@ -661,6 +831,50 @@ class LLMService:
         except json.JSONDecodeError as e:
             logger.error(f"Ошибка парсинга списка покупок: {e}")
             raise LLMServiceError("Ошибка создания списка покупок")
+
+    async def get_completion(
+        self,
+        prompt: str,
+        system_message: str = None,
+        **kwargs
+    ) -> str:
+        """
+        Simple method to get completion from LLM
+        
+        Args:
+            prompt: User prompt
+            system_message: Optional system message
+            **kwargs: Additional parameters
+        
+        Returns:
+            LLM response content
+        """
+        
+        if not prompt.strip():
+            raise ValidationError("Промпт не может быть пустым")
+        
+        # Формирование сообщений
+        messages = []
+        
+        if system_message:
+            messages.append({
+                "role": "system",
+                "content": system_message
+            })
+        
+        messages.append({
+            "role": "user", 
+            "content": prompt
+        })
+        
+        # Выполнение запроса
+        result = await self._make_openai_request(
+            messages=messages,
+            request_type=LLMRequestType.CHAT,
+            **kwargs
+        )
+        
+        return result["content"].strip()
 
 
 # Глобальный экземпляр сервиса
