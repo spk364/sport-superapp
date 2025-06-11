@@ -1,0 +1,156 @@
+# Trainer Mini App - Cursor AI Rules
+
+## ПРОЕКТ: AI TRAINER MINI APP
+Мобильное приложение для фитнес-тренировок с интегрированным AI-тренером на базе OpenAI GPT.
+
+## АРХИТЕКТУРА ПРОЕКТА
+
+### FRONTEND (React Client App)
+- **Технологии**: React 18 + TypeScript + Tailwind CSS + React Router
+- **Структура**: Component-based architecture с custom hooks
+- **UI**: Mobile-first responsive design с Tailwind utility classes
+- **Стиль**: Современный градиентный дизайн (голубые/фиолетовые тона)
+
+### BACKEND (AI Agent Service)  
+- **Технологии**: FastAPI + OpenAI API + SQLAlchemy + SQLite
+- **Расположение**: `../virtual-trainer-app/` (отдельная директория)
+- **API**: RESTful endpoints для AI chat, генерации тренировок, анализа прогресса
+- **База данных**: SQLite с моделями User, WorkoutSession, Message
+
+### ИНТЕГРАЦИЯ
+- **Proxy**: setupProxy.js для проксирования `/api/*` запросов на backend (localhost:8000)
+- **AI Service**: `src/services/aiService.ts` - типизированные API calls
+- **Chat Hook**: `src/hooks/useChat.ts` - управление состоянием чата
+- **Environment**: .env файл с OpenAI и Telegram Bot API ключами
+
+## ФАЙЛОВАЯ СТРУКТУРА
+
+```
+src/
+├── components/
+│   ├── chat/           # AI Chat компоненты
+│   ├── dashboard/      # Дашборд и виджеты  
+│   ├── navigation/     # Навигация
+│   ├── workout/        # Тренировочные компоненты
+│   └── common/         # Переиспользуемые компоненты
+├── pages/              # Страницы приложения
+├── hooks/              # Custom React hooks
+├── services/           # API сервисы
+├── types/              # TypeScript типы
+└── styles/             # CSS стили
+```
+
+## КЛЮЧЕВЫЕ ОСОБЕННОСТИ
+
+### AI ТРЕНЕР ФУНКЦИОНАЛЬНОСТЬ
+- **Персонализированный чат** с контекстом пользователя
+- **Генерация тренировок** по целям, оборудованию, ограничениям
+- **Анализ прогресса** и корректировка планов
+- **Советы по питанию** и мотивации
+- **Quick Actions** для быстрых запросов
+
+### КОМПОНЕНТЫ ИНТЕРФЕЙСА
+- `ChatInterface` - основной интерфейс чата с AI
+- `WorkoutProgramGenerator` - генератор программ тренировок
+- `AIAssistantWidget` - виджет на дашборде
+- `QuickActions` - быстрые действия
+
+## ПРАВИЛА РАЗРАБОТКИ
+
+### СТИЛИЗАЦИЯ
+- **ТОЛЬКО Tailwind CSS** - никаких inline стилей или CSS modules
+- **Mobile-first** подход к responsive design
+- **Градиентные элементы**: `bg-gradient-to-br from-blue-500 to-purple-600`
+- **Consistency**: одинаковые отступы, цвета, типографика
+
+### TYPESCRIPT
+- **Строгая типизация** всех props, state, API responses
+- **Интерфейсы** в `src/types/` для всех данных
+- **Generic компоненты** с типизированными пропсами
+- **No any types** - всегда явная типизация
+
+### REACT PATTERNS
+- **Functional Components** с hooks - никаких class components
+- **Custom hooks** для business logic (useChat, useWorkout)
+- **Props drilling** избегать через context при необходимости
+- **Мемоизация** useMemo/useCallback для оптимизации
+
+### API ИНТЕГРАЦИЯ
+- **Типизированные запросы** через aiService.ts
+- **Error handling** с toast уведомлениями
+- **Loading states** для всех async операций
+- **Retry logic** для failed requests
+
+### КОМПОНЕНТНАЯ АРХИТЕКТУРА
+- **Single Responsibility** - один компонент = одна задача
+- **Composition over inheritance** - составные компоненты
+- **Props interface** для каждого компонента
+- **Default props** через ES6 default parameters
+
+## СПЕЦИФИЧНЫЕ ИНСТРУКЦИИ
+
+### ПРИ РАБОТЕ С AI ФУНКЦИОНАЛЬНОСТЬЮ
+- Всегда используй типы из `src/types/ai.ts`
+- API calls только через `aiService.ts`
+- Обработка ошибок обязательна для всех AI запросов
+- Loading states для долгих операций (генерация тренировок)
+
+### ПРИ РАБОТЕ С UI КОМПОНЕНТАМИ  
+- Всегда mobile-first responsive design
+- Gradient elements для кнопок и карточек
+- Icons из Lucide React
+- Animations через Tailwind transition classes
+
+### ПРИ ДОБАВЛЕНИИ НОВЫХ FEATURES
+- Создавай отдельные компоненты в соответствующих папках
+- Добавляй TypeScript типы в `src/types/`
+- Обновляй navigation если нужны новые routes
+- Тестируй на мобильных размерах экрана
+
+### BACKEND ИНТЕГРАЦИЯ
+- Backend запускается из `../virtual-trainer-app/`
+- Используй `npm run dev:backend` для запуска backend
+- API доступно на `localhost:8000`
+- Proxy настроен в setupProxy.js
+
+## ВАЖНЫЕ ФАЙЛЫ
+
+- `.env` - API ключи (OpenAI, Telegram Bot)
+- `setupProxy.js` - проксирование API запросов
+- `src/services/aiService.ts` - все AI API calls
+- `src/hooks/useChat.ts` - chat state management
+- `package.json` - скрипты для запуска frontend/backend
+
+## КОМАНДЫ ЗАПУСКА
+
+```bash
+# Frontend (порт 3000)
+npm start
+
+# Backend (порт 8000) 
+npm run dev:backend
+
+# Все одновременно
+npm run dev:all
+```
+
+## НЕ ДЕЛАЙ
+
+❌ Не используй CSS modules или styled-components - только Tailwind
+❌ Не создавай class components - только functional с hooks  
+❌ Не делай direct API calls - используй aiService.ts
+❌ Не игнорируй TypeScript ошибки - всегда фикси
+❌ Не забывай про mobile responsive design
+❌ Не используй any types - всегда явная типизация
+❌ Не создавай компоненты без proper error handling
+
+## ВСЕГДА ДЕЛАЙ
+
+✅ Используй TypeScript строго с интерфейсами
+✅ Применяй Tailwind utility classes для стилизации
+✅ Создавай responsive mobile-first компоненты
+✅ Добавляй loading states для async операций
+✅ Обрабатывай ошибки с user-friendly сообщениями
+✅ Следуй established naming conventions
+✅ Тестируй на мобильных размерах экрана
+✅ Используй gradient design elements для consistency 
