@@ -3,14 +3,14 @@ import {
   HomeIcon,
   CalendarDaysIcon,
   ChartBarIcon,
-  CreditCardIcon,
+  ChatBubbleLeftRightIcon,
   UserIcon,
 } from '@heroicons/react/24/outline';
 import {
   HomeIcon as HomeIconSolid,
   CalendarDaysIcon as CalendarDaysIconSolid,
   ChartBarIcon as ChartBarIconSolid,
-  CreditCardIcon as CreditCardIconSolid,
+  ChatBubbleLeftRightIcon as ChatBubbleLeftRightIconSolid,
   UserIcon as UserIconSolid,
 } from '@heroicons/react/24/solid';
 import { useAppStore } from '../../store';
@@ -35,10 +35,10 @@ const navigation = [
     activeIcon: ChartBarIconSolid 
   },
   { 
-    name: 'Оплата', 
-    page: 'payments', 
-    icon: CreditCardIcon, 
-    activeIcon: CreditCardIconSolid 
+    name: 'ИИ Тренер', 
+    page: 'chat', 
+    icon: ChatBubbleLeftRightIcon, 
+    activeIcon: ChatBubbleLeftRightIconSolid 
   },
   { 
     name: 'Профиль', 

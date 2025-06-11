@@ -8,10 +8,11 @@ import {
   CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 import { Header } from '../components/common/Header';
+import { AIAssistantWidget } from '../components/common/AIAssistantWidget';
 import { useAppStore } from '../store';
 
 export const Dashboard: React.FC = () => {
-  const { user, subscription, homeTasks, workouts } = useAppStore();
+  const { user, subscription, homeTasks, workouts, setCurrentPage } = useAppStore();
 
   const upcomingWorkouts = workouts
     .filter(w => w.status === 'scheduled' && new Date(w.date) > new Date())
@@ -75,6 +76,9 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* AI Assistant Widget */}
+        <AIAssistantWidget />
 
         {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-4">
@@ -175,9 +179,12 @@ export const Dashboard: React.FC = () => {
             <div className="text-lg font-semibold">Записать заметку</div>
             <div className="text-sm opacity-90">О тренировке или самочувствии</div>
           </button>
-          <button className="bg-gradient-to-r from-accent-500 to-accent-600 text-white p-4 rounded-lg text-center">
-            <div className="text-lg font-semibold">Чат с AI</div>
-            <div className="text-sm opacity-90">Задать вопрос помощнику</div>
+          <button 
+            onClick={() => setCurrentPage('chat')}
+            className="bg-gradient-to-r from-accent-500 to-accent-600 text-white p-4 rounded-lg text-center"
+          >
+            <div className="text-lg font-semibold">Чат с ИИ</div>
+            <div className="text-sm opacity-90">Задать вопрос тренеру</div>
           </button>
         </div>
       </div>
