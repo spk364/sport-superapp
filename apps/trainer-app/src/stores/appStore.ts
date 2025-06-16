@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Client, TrainingSession, Payment, TrainingProgram, ChatMessage } from "../types";
+import { Client, TrainingSession, Payment, TrainingProgram, ChatMessage, Organization } from "../types";
 import { mockClients, mockSessions, mockPayments, mockMessages, mockPrograms } from "../data/mockData";
 
 interface AppState {
@@ -9,6 +9,11 @@ interface AppState {
   programs: TrainingProgram[];
   messages: ChatMessage[];
   selectedClientId: string | null;
+  
+  // Organization management
+  organizations: Organization[];
+  currentOrganization: Organization | null;
+  showRegistrationForm: boolean;
 
   initializeData: () => void;
   addClient: (client: Client) => void;
@@ -26,6 +31,12 @@ interface AppState {
   
   addMessage: (message: ChatMessage) => void;
   markMessageAsRead: (id: string) => void;
+  
+  // Organization methods
+  addOrganization: (organization: Organization) => void;
+  updateOrganization: (id: string, updates: Partial<Organization>) => void;
+  setCurrentOrganization: (organization: Organization | null) => void;
+  setShowRegistrationForm: (show: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -35,6 +46,11 @@ export const useAppStore = create<AppState>((set) => ({
   programs: [],
   messages: [],
   selectedClientId: null,
+  
+  // Organization state
+  organizations: [],
+  currentOrganization: null,
+  showRegistrationForm: false,
 
   initializeData: () => set({
     clients: mockClients,
@@ -94,5 +110,25 @@ export const useAppStore = create<AppState>((set) => ({
     messages: state.messages.map((message) =>
       message.id === id ? { ...message, read: true } : message
     )
-  }))
+  })),
+  
+  // Organization methods
+  addOrganization: (organization) => set((state) => ({
+    organizations: [...state.organizations, organization],
+    currentOrganization: organization,
+    showRegistrationForm: false
+  })),
+
+  updateOrganization: (id, updates) => set((state) => ({
+    organizations: state.organizations.map((org) =>
+      org.id === id ? { ...org, ...updates } : org
+    ),
+    currentOrganization: state.currentOrganization?.id === id 
+      ? { ...state.currentOrganization, ...updates } 
+      : state.currentOrganization
+  })),
+
+  setCurrentOrganization: (organization) => set({ currentOrganization: organization }),
+  
+  setShowRegistrationForm: (show) => set({ showRegistrationForm: show })
 }));

@@ -120,3 +120,146 @@ export interface PaymentSummary {
   nextDueDate?: Date;
   status: "current" | "overdue" | "warning";
 }
+
+// NEW TYPES FOR TRAINER/ORGANIZATION REGISTRATION
+
+export interface TrainingDirection {
+  id: string;
+  name: string;
+  description?: string;
+  category: "fitness" | "yoga" | "crossfit" | "martial_arts" | "dancing" | "swimming" | "other";
+}
+
+export interface ServicePackage {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  duration: number; // in minutes
+  sessionsCount: number;
+  validityPeriod: number; // in days
+  isActive: boolean;
+}
+
+export interface PaymentMethod {
+  id: string;
+  type: "cash" | "card" | "bank_transfer" | "crypto" | "payment_system";
+  name: string;
+  details?: string;
+  isActive: boolean;
+}
+
+export interface SocialNetwork {
+  platform: "instagram" | "facebook" | "telegram" | "whatsapp" | "youtube" | "tiktok" | "vk" | "other";
+  url: string;
+  isActive: boolean;
+}
+
+export interface WorkingHours {
+  dayOfWeek: number; // 0-6 (Sunday-Saturday)
+  openTime: string; // HH:mm format
+  closeTime: string; // HH:mm format
+  isWorkingDay: boolean;
+}
+
+export interface LegalData {
+  organizationType: "ip" | "ooo" | "fitness_club" | "personal";
+  iin?: string; // ИИН (для ИП)
+  bin?: string; // БИН (для ООО)
+  companyName?: string;
+  legalAddress?: string;
+  bankDetails?: {
+    bank: string;
+    accountNumber: string;
+    bik: string;
+  };
+  registrationData?: any; // Data from EGOV API
+}
+
+export interface Trainer {
+  id: string;
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  photo?: string;
+  bio?: string;
+  specializations: TrainingDirection[];
+  experience: number; // years
+  certifications: string[];
+  contactInfo: {
+    phone: string;
+    email: string;
+    telegram?: string;
+  };
+  isActive: boolean;
+}
+
+export interface Organization {
+  id: string;
+  // Basic Info
+  clubName: string;
+  ownerName: string;
+  description?: string;
+  
+  // Training Directions
+  trainingDirections: TrainingDirection[];
+  
+  // Services & Pricing
+  servicePackages: ServicePackage[];
+  
+  // Location & Schedule
+  address: {
+    country: string;
+    city: string;
+    street: string;
+    building: string;
+    apartment?: string;
+    zipCode?: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
+  };
+  workingHours: WorkingHours[];
+  
+  // Branding
+  logo?: string;
+  coverImage?: string;
+  brandColors?: {
+    primary: string;
+    secondary: string;
+    accent: string;
+  };
+  
+  // Payment Methods
+  paymentMethods: PaymentMethod[];
+  
+  // Legal Information
+  legalData: LegalData;
+  
+  // Social Networks
+  socialNetworks: SocialNetwork[];
+  
+  // Staff
+  trainers: Trainer[];
+  
+  // Settings
+  settings: {
+    allowOnlineBooking: boolean;
+    requirePaymentUpfront: boolean;
+    cancellationPolicy: string;
+    isVerified: boolean;
+    isActive: boolean;
+  };
+  
+  // Metadata
+  createdAt: Date;
+  updatedAt: Date;
+  registrationStep: "basic" | "services" | "location" | "branding" | "payment" | "legal" | "completed";
+}
+
+export interface RegistrationFormData extends Partial<Organization> {
+  currentStep: number;
+  totalSteps: number;
+}

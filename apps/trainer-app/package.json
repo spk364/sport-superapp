@@ -2,7 +2,7 @@
   "name": "trainer-app",
   "version": "0.1.0",
   "private": true,
-  "homepage": "/sport-superapp/trainer",
+  "homepage": "https://spk364.github.io/sport-superapp/trainer",
   "dependencies": {
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
