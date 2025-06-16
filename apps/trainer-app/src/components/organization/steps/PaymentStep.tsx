@@ -246,8 +246,11 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
                 checked={data.settings?.allowOnlineBooking || false}
                 onChange={(e) => onUpdate({
                   settings: {
-                    ...data.settings,
-                    allowOnlineBooking: e.target.checked
+                    allowOnlineBooking: e.target.checked,
+                    requirePaymentUpfront: data.settings?.requirePaymentUpfront || false,
+                    cancellationPolicy: data.settings?.cancellationPolicy || '',
+                    isVerified: data.settings?.isVerified || false,
+                    isActive: data.settings?.isActive || true
                   }
                 })}
                 className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
@@ -264,8 +267,11 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
                 checked={data.settings?.requirePaymentUpfront || false}
                 onChange={(e) => onUpdate({
                   settings: {
-                    ...data.settings,
-                    requirePaymentUpfront: e.target.checked
+                    allowOnlineBooking: data.settings?.allowOnlineBooking || true,
+                    requirePaymentUpfront: e.target.checked,
+                    cancellationPolicy: data.settings?.cancellationPolicy || '',
+                    isVerified: data.settings?.isVerified || false,
+                    isActive: data.settings?.isActive || true
                   }
                 })}
                 className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
@@ -281,8 +287,11 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
             value={data.settings?.cancellationPolicy || ''}
             onChange={(e) => onUpdate({
               settings: {
-                ...data.settings,
-                cancellationPolicy: e.target.value
+                allowOnlineBooking: data.settings?.allowOnlineBooking || true,
+                requirePaymentUpfront: data.settings?.requirePaymentUpfront || false,
+                cancellationPolicy: e.target.value,
+                isVerified: data.settings?.isVerified || false,
+                isActive: data.settings?.isActive || true
               }
             })}
             className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"

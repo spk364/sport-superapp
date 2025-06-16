@@ -61,10 +61,12 @@ const LegalStep: React.FC<LegalStepProps> = ({
       // Auto-fill form data
       onUpdate({
         legalData: {
-          ...data.legalData,
+          organizationType: data.legalData?.organizationType || 'personal',
           iin: iin,
           companyName: mockData.fullName,
-          registrationData: mockData
+          registrationData: mockData,
+          bin: data.legalData?.bin,
+          bankDetails: data.legalData?.bankDetails
         }
       });
 
@@ -104,11 +106,13 @@ const LegalStep: React.FC<LegalStepProps> = ({
       // Auto-fill form data
       onUpdate({
         legalData: {
-          ...data.legalData,
+          organizationType: data.legalData?.organizationType || 'personal',
           bin: bin,
           companyName: mockData.companyName,
           legalAddress: mockData.legalAddress,
-          registrationData: mockData
+          registrationData: mockData,
+          iin: data.legalData?.iin,
+          bankDetails: data.legalData?.bankDetails
         }
       });
 
@@ -373,9 +377,15 @@ const LegalStep: React.FC<LegalStepProps> = ({
                 type="text"
                 id="bank"
                 value={data.legalData?.bankDetails?.bank || ''}
-                onChange={(e) => updateLegalData('bankDetails', {
-                  ...data.legalData?.bankDetails,
-                  bank: e.target.value
+                onChange={(e) => onUpdate({
+                  legalData: {
+                    ...data.legalData,
+                    bankDetails: {
+                      bank: e.target.value,
+                      accountNumber: data.legalData?.bankDetails?.accountNumber || '',
+                      bik: data.legalData?.bankDetails?.bik || ''
+                    }
+                  }
                 })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="АО Kaspi Bank"
@@ -390,9 +400,15 @@ const LegalStep: React.FC<LegalStepProps> = ({
                 type="text"
                 id="accountNumber"
                 value={data.legalData?.bankDetails?.accountNumber || ''}
-                onChange={(e) => updateLegalData('bankDetails', {
-                  ...data.legalData?.bankDetails,
-                  accountNumber: e.target.value
+                onChange={(e) => onUpdate({
+                  legalData: {
+                    ...data.legalData,
+                    bankDetails: {
+                      bank: data.legalData?.bankDetails?.bank || '',
+                      accountNumber: e.target.value,
+                      bik: data.legalData?.bankDetails?.bik || ''
+                    }
+                  }
                 })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="KZ123456789012345678"
@@ -407,15 +423,43 @@ const LegalStep: React.FC<LegalStepProps> = ({
                 type="text"
                 id="bik"
                 value={data.legalData?.bankDetails?.bik || ''}
-                onChange={(e) => updateLegalData('bankDetails', {
-                  ...data.legalData?.bankDetails,
-                  bik: e.target.value
+                onChange={(e) => onUpdate({
+                  legalData: {
+                    ...data.legalData,
+                    bankDetails: {
+                      bank: data.legalData?.bankDetails?.bank || '',
+                      accountNumber: data.legalData?.bankDetails?.accountNumber || '',
+                      bik: e.target.value
+                    }
+                  }
                 })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="CASPKZKA"
               />
             </div>
           </div>
+        </div>
+
+        {/* Verification Status */}
+        <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-blue-50">
+          <div>
+            <h4 className="font-medium text-blue-800">Верификация</h4>
+            <p className="text-sm text-blue-600">Статус проверки документов</p>
+          </div>
+          <input
+            type="checkbox"
+            checked={data.settings?.isVerified || false}
+            onChange={(e) => onUpdate({
+              settings: {
+                allowOnlineBooking: data.settings?.allowOnlineBooking || true,
+                requirePaymentUpfront: data.settings?.requirePaymentUpfront || false,
+                cancellationPolicy: data.settings?.cancellationPolicy || '',
+                isVerified: e.target.checked,
+                isActive: data.settings?.isActive || true
+              }
+            })}
+            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+          />
         </div>
 
         {/* Buttons */}

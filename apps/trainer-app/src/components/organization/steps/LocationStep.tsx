@@ -55,7 +55,13 @@ const LocationStep: React.FC<LocationStepProps> = ({
   const updateAddress = (field: string, value: string) => {
     onUpdate({
       address: {
-        ...data.address,
+        country: data.address?.country || 'Казахстан',
+        city: data.address?.city || '',
+        street: data.address?.street || '',
+        building: data.address?.building || '',
+        apartment: data.address?.apartment || '',
+        zipCode: data.address?.zipCode || '',
+        coordinates: data.address?.coordinates,
         [field]: value
       }
     });

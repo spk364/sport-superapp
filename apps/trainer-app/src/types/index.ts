@@ -164,9 +164,9 @@ export interface WorkingHours {
 }
 
 export interface LegalData {
-  organizationType: "ip" | "ooo" | "fitness_club" | "personal";
-  iin?: string; // ИИН (для ИП)
-  bin?: string; // БИН (для ООО)
+  organizationType?: 'personal' | 'ip' | 'ooo' | 'fitness_club';
+  iin?: string;
+  bin?: string;
   companyName?: string;
   legalAddress?: string;
   bankDetails?: {
@@ -174,24 +174,24 @@ export interface LegalData {
     accountNumber: string;
     bik: string;
   };
-  registrationData?: any; // Data from EGOV API
+  registrationData?: any;
 }
 
 export interface Trainer {
-  id: string;
+  id?: string;
   firstName: string;
   lastName: string;
-  middleName?: string;
-  photo?: string;
-  bio?: string;
-  specializations: TrainingDirection[];
+  specializations: string[];
   experience: number; // years
   certifications: string[];
   contactInfo: {
-    phone: string;
-    email: string;
+    phone?: string;
+    email?: string;
     telegram?: string;
   };
+  avatar?: string;
+  bio?: string;
+  rating?: number;
   isActive: boolean;
 }
 
@@ -209,11 +209,11 @@ export interface Organization {
   servicePackages: ServicePackage[];
   
   // Location & Schedule
-  address: {
-    country: string;
-    city: string;
-    street: string;
-    building: string;
+  address?: {
+    country?: string;
+    city?: string;
+    street?: string;
+    building?: string;
     apartment?: string;
     zipCode?: string;
     coordinates?: {
@@ -227,16 +227,16 @@ export interface Organization {
   logo?: string;
   coverImage?: string;
   brandColors?: {
-    primary: string;
-    secondary: string;
-    accent: string;
+    primary?: string;
+    secondary?: string;
+    accent?: string;
   };
   
   // Payment Methods
   paymentMethods: PaymentMethod[];
   
   // Legal Information
-  legalData: LegalData;
+  legalData?: LegalData;
   
   // Social Networks
   socialNetworks: SocialNetwork[];
@@ -245,7 +245,7 @@ export interface Organization {
   trainers: Trainer[];
   
   // Settings
-  settings: {
+  settings?: {
     allowOnlineBooking: boolean;
     requirePaymentUpfront: boolean;
     cancellationPolicy: string;
@@ -262,4 +262,10 @@ export interface Organization {
 export interface RegistrationFormData extends Partial<Organization> {
   currentStep: number;
   totalSteps: number;
+}
+
+export interface ContactInfo {
+  phone?: string;
+  email?: string;
+  telegram?: string;
 }

@@ -129,7 +129,7 @@ const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
             <div>
               <span className="text-sm font-medium text-gray-600">Адрес:</span>
               <p className="text-gray-800">
-                {data.address ? 
+                {data.address && data.address.city && data.address.street && data.address.building ? 
                   `${data.address.city}, ${data.address.street} ${data.address.building}${data.address.apartment ? `, ${data.address.apartment}` : ''}` 
                   : 'Не указан'
                 }
@@ -260,8 +260,11 @@ const ConfirmationStep: React.FC<ConfirmationStepProps> = ({
               checked={data.settings?.isVerified || false}
               onChange={(e) => onUpdate({
                 settings: {
-                  ...data.settings,
-                  isVerified: e.target.checked
+                  allowOnlineBooking: data.settings?.allowOnlineBooking || true,
+                  requirePaymentUpfront: data.settings?.requirePaymentUpfront || false,
+                  cancellationPolicy: data.settings?.cancellationPolicy || '',
+                  isVerified: e.target.checked,
+                  isActive: data.settings?.isActive || true
                 }
               })}
               className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-1"

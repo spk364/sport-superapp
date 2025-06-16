@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Organization, RegistrationFormData } from '../../types';
+import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { Organization, TrainingDirection, ServicePackage, WorkingHours, PaymentMethod, SocialNetwork, LegalData, Trainer } from '../../types';
 import BasicInfoStep from './steps/BasicInfoStep';
 import ServicesStep from './steps/ServicesStep';
 import LocationStep from './steps/LocationStep';
@@ -8,6 +9,63 @@ import PaymentStep from './steps/PaymentStep';
 import LegalStep from './steps/LegalStep';
 import TrainersStep from './steps/TrainersStep';
 import ConfirmationStep from './steps/ConfirmationStep';
+
+interface FormData {
+  // Step tracking
+  currentStep: number;
+  totalSteps: number;
+  
+  // Basic Info
+  clubName: string;
+  ownerName: string;
+  description?: string;
+  organizationType?: 'personal' | 'organization';
+  
+  // Services
+  trainingDirections?: TrainingDirection[];
+  servicePackages?: ServicePackage[];
+  
+  // Location & Schedule
+  address?: {
+    country?: string;
+    city?: string;
+    street?: string;
+    building?: string;
+    apartment?: string;
+    zipCode?: string;
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
+  };
+  workingHours?: WorkingHours[];
+  
+  // Branding
+  logo?: string;
+  coverImage?: string;
+  brandColors?: {
+    primary?: string;
+    secondary?: string;
+    accent?: string;
+  };
+  
+  // Payment & Social
+  paymentMethods?: PaymentMethod[];
+  socialNetworks?: SocialNetwork[];
+  settings?: {
+    allowOnlineBooking: boolean;
+    requirePaymentUpfront: boolean;
+    cancellationPolicy: string;
+    isVerified: boolean;
+    isActive: boolean;
+  };
+  
+  // Legal
+  legalData?: LegalData;
+  
+  // Staff
+  trainers?: Trainer[];
+}
 
 interface OrganizationRegistrationProps {
   onComplete: (organization: Organization) => void;
@@ -21,9 +79,11 @@ const OrganizationRegistration: React.FC<OrganizationRegistrationProps> = ({
   onCancel
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<RegistrationFormData>({
+  const [formData, setFormData] = useState<FormData>({
     currentStep: 1,
     totalSteps: TOTAL_STEPS,
+    clubName: '',
+    ownerName: '',
     settings: {
       allowOnlineBooking: true,
       requirePaymentUpfront: false,
@@ -58,7 +118,7 @@ const OrganizationRegistration: React.FC<OrganizationRegistrationProps> = ({
     'Подтверждение'
   ];
 
-  const updateFormData = (updates: Partial<RegistrationFormData>) => {
+  const updateFormData = (updates: Partial<FormData>) => {
     setFormData(prev => ({
       ...prev,
       ...updates,
@@ -86,18 +146,21 @@ const OrganizationRegistration: React.FC<OrganizationRegistrationProps> = ({
       description: formData.description,
       trainingDirections: formData.trainingDirections || [],
       servicePackages: formData.servicePackages || [],
-      address: formData.address || {
-        country: 'Казахстан',
-        city: '',
-        street: '',
-        building: ''
-      },
+      address: formData.address ? {
+        country: formData.address.country || 'Казахстан',
+        city: formData.address.city || '',
+        street: formData.address.street || '',
+        building: formData.address.building || '',
+        apartment: formData.address.apartment,
+        zipCode: formData.address.zipCode,
+        coordinates: formData.address.coordinates
+      } : undefined,
       workingHours: formData.workingHours || [],
       logo: formData.logo,
       coverImage: formData.coverImage,
       brandColors: formData.brandColors,
       paymentMethods: formData.paymentMethods || [],
-      legalData: formData.legalData || { organizationType: 'personal' },
+      legalData: formData.legalData,
       socialNetworks: formData.socialNetworks || [],
       trainers: formData.trainers || [],
       settings: formData.settings || {

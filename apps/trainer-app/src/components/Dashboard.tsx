@@ -244,7 +244,7 @@ const Dashboard: React.FC = () => {
                       <h3 className="text-xl font-bold text-gray-800">{currentOrganization.clubName}</h3>
                       <p className="text-gray-600">{currentOrganization.description}</p>
                       <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                        <span>📍 {currentOrganization.address?.city}</span>
+                        <span>📍 {currentOrganization.address?.city || 'Не указан'}</span>
                         <span>📞 {currentOrganization.trainers?.[0]?.contactInfo?.phone || 'Не указан'}</span>
                         <span>📧 {currentOrganization.trainers?.[0]?.contactInfo?.email || 'Не указан'}</span>
                       </div>

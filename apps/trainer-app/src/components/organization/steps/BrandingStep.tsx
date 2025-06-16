@@ -197,8 +197,9 @@ const BrandingStep: React.FC<BrandingStepProps> = ({
                   value={data.brandColors?.primary || '#3B82F6'}
                   onChange={(e) => onUpdate({
                     brandColors: {
-                      ...data.brandColors,
-                      primary: e.target.value
+                      primary: e.target.value,
+                      secondary: data.brandColors?.secondary || '#1E40AF',
+                      accent: data.brandColors?.accent || '#06B6D4'
                     }
                   })}
                   className="w-12 h-12 border border-gray-300 rounded-lg cursor-pointer"
@@ -208,8 +209,9 @@ const BrandingStep: React.FC<BrandingStepProps> = ({
                   value={data.brandColors?.primary || '#3B82F6'}
                   onChange={(e) => onUpdate({
                     brandColors: {
-                      ...data.brandColors,
-                      primary: e.target.value
+                      primary: e.target.value,
+                      secondary: data.brandColors?.secondary || '#1E40AF',
+                      accent: data.brandColors?.accent || '#06B6D4'
                     }
                   })}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -228,8 +230,9 @@ const BrandingStep: React.FC<BrandingStepProps> = ({
                   value={data.brandColors?.secondary || '#1E40AF'}
                   onChange={(e) => onUpdate({
                     brandColors: {
-                      ...data.brandColors,
-                      secondary: e.target.value
+                      primary: data.brandColors?.primary || '#3B82F6',
+                      secondary: e.target.value,
+                      accent: data.brandColors?.accent || '#06B6D4'
                     }
                   })}
                   className="w-12 h-12 border border-gray-300 rounded-lg cursor-pointer"
@@ -239,8 +242,9 @@ const BrandingStep: React.FC<BrandingStepProps> = ({
                   value={data.brandColors?.secondary || '#1E40AF'}
                   onChange={(e) => onUpdate({
                     brandColors: {
-                      ...data.brandColors,
-                      secondary: e.target.value
+                      primary: data.brandColors?.primary || '#3B82F6',
+                      secondary: e.target.value,
+                      accent: data.brandColors?.accent || '#06B6D4'
                     }
                   })}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -259,7 +263,8 @@ const BrandingStep: React.FC<BrandingStepProps> = ({
                   value={data.brandColors?.accent || '#06B6D4'}
                   onChange={(e) => onUpdate({
                     brandColors: {
-                      ...data.brandColors,
+                      primary: data.brandColors?.primary || '#3B82F6',
+                      secondary: data.brandColors?.secondary || '#1E40AF',
                       accent: e.target.value
                     }
                   })}
@@ -270,7 +275,8 @@ const BrandingStep: React.FC<BrandingStepProps> = ({
                   value={data.brandColors?.accent || '#06B6D4'}
                   onChange={(e) => onUpdate({
                     brandColors: {
-                      ...data.brandColors,
+                      primary: data.brandColors?.primary || '#3B82F6',
+                      secondary: data.brandColors?.secondary || '#1E40AF',
                       accent: e.target.value
                     }
                   })}

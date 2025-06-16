@@ -29,11 +29,9 @@ const TrainersStep: React.FC<TrainersStepProps> = ({
         id: `trainer_${Date.now()}`,
         firstName: newTrainer.firstName,
         lastName: newTrainer.lastName,
-        middleName: newTrainer.middleName,
-        photo: newTrainer.photo,
         bio: newTrainer.bio,
         specializations: newTrainer.specializations || [],
-        experience: Number(newTrainer.experience) || 0,
+        experience: newTrainer.experience || 0,
         certifications: newTrainer.certifications || [],
         contactInfo: {
           phone: newTrainer.contactInfo?.phone || '',
@@ -69,14 +67,9 @@ const TrainersStep: React.FC<TrainersStepProps> = ({
     
     const updatedTrainers = data.trainers?.map(trainer => {
       if (trainer.id === trainerId) {
-        const newSpec = {
-          id: `spec_${Date.now()}`,
-          name: specialization,
-          category: 'other' as any
-        };
         return {
           ...trainer,
-          specializations: [...trainer.specializations, newSpec]
+          specializations: [...trainer.specializations, specialization]
         };
       }
       return trainer;
@@ -129,13 +122,6 @@ const TrainersStep: React.FC<TrainersStepProps> = ({
                 placeholder="Фамилия *"
                 value={newTrainer.lastName || ''}
                 onChange={(e) => setNewTrainer({...newTrainer, lastName: e.target.value})}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-              />
-              <input
-                type="text"
-                placeholder="Отчество"
-                value={newTrainer.middleName || ''}
-                onChange={(e) => setNewTrainer({...newTrainer, middleName: e.target.value})}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
             </div>
@@ -215,12 +201,12 @@ const TrainersStep: React.FC<TrainersStepProps> = ({
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h4 className="text-xl font-semibold text-gray-800">
-                        {trainer.firstName} {trainer.lastName} {trainer.middleName}
+                        {trainer.firstName} {trainer.lastName}
                       </h4>
                       <p className="text-emerald-600">Опыт: {trainer.experience} лет</p>
                     </div>
                     <button
-                      onClick={() => removeTrainer(trainer.id)}
+                      onClick={() => trainer.id && removeTrainer(trainer.id)}
                       className="text-red-500 hover:text-red-700 p-2"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -260,7 +246,7 @@ const TrainersStep: React.FC<TrainersStepProps> = ({
                       <div className="flex flex-wrap gap-2">
                         {trainer.specializations.map((spec, index) => (
                           <span key={index} className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm">
-                            {spec.name}
+                            {spec}
                           </span>
                         ))}
                       </div>
