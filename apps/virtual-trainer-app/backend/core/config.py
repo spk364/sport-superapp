@@ -26,14 +26,14 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     
     # OpenAI LLM
-    OPENAI_API_KEY: str = "your-openai-api-key-here"
+    OPENAI_API_KEY: str = "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"
     OPENAI_MODEL: str = "gpt-4o-mini"
     OPENAI_TEMPERATURE: float = 0.7
     OPENAI_MAX_TOKENS: int = 1500
     OPENAI_TIMEOUT: int = 30
     
     # Telegram Bot
-    TELEGRAM_BOT_TOKEN: str = "your-telegram-bot-token-here"
+    TELEGRAM_BOT_TOKEN: str = "7898046617:AAFDsP0bCJXzwiqmtUsQREJFWDM6PDxFZ6U"
     TELEGRAM_WEBHOOK_URL: str = ""
     TELEGRAM_WEBHOOK_SECRET: str = ""
     

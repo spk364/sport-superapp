@@ -9,7 +9,7 @@ import os
 import sys
 from typing import Dict, Any, List
 from datetime import datetime
-
+from fastapi import FastAPI, Request
 from telegram import Update, BotCommand
 from telegram.ext import (
     Application, CommandHandler, MessageHandler,
@@ -26,6 +26,9 @@ from backend.services.nutrition_service import NutritionService
 from backend.services.questionnaire_service import QuestionnaireService
 from backend.core.config import settings
 
+# Create FastAPI app
+app = FastAPI(title="Virtual Trainer Bot", version="1.0.0")
+
 # Setup logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -40,6 +43,8 @@ nutrition_service = NutritionService(llm_service, user_service)
 trainer_service = TrainerService(llm_service, user_service, nutrition_service)
 questionnaire_service = QuestionnaireService(user_service, trainer_service, llm_service)
 
+# Create bot application
+application = Application.builder().token(settings.TELEGRAM_BOT_TOKEN).build()
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /start command"""
@@ -853,11 +858,21 @@ async def show_program_command(update: Update, context: ContextTypes.DEFAULT_TYP
     await send_full_program(update, user_id)
 
 
+@app.post("/webhook")
+async def webhook(request: Request):
+    """Handle webhook updates from Telegram"""
+    data = await request.json()
+    update = Update.de_json(data, application.bot)
+    await application.process_update(update)
+    return {"ok": True}
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "ok", "timestamp": datetime.now().isoformat()}
+
 def main() -> None:
     """Main function to start the bot"""
-    # Create application
-    application = Application.builder().token(settings.TELEGRAM_BOT_TOKEN).build()
-    
     # Register commands
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
