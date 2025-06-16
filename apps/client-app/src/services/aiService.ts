@@ -1,4 +1,4 @@
-import { Coach } from '../types';
+import { Coach, User } from '../types';
 
 // API base URL - в production это должен быть URL вашего backend
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
@@ -134,6 +134,13 @@ class AIService {
   async getCoachInfo(userId?: string): Promise<Coach> {
     const endpoint = userId ? `/coach/profile/${userId}` : '/coach/profile';
     return this.makeGetRequest<Coach>(endpoint);
+  }
+
+  /**
+   * Получить информацию о текущем пользователе
+   */
+  async getCurrentUser(): Promise<User> {
+    return this.makeGetRequest<User>('/users/me');
   }
 }
 

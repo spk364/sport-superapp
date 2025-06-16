@@ -1,18 +1,37 @@
 export interface User {
   id: string;
-  firstName: string;
-  lastName: string;
-  telegramId: string;
+  email: string;
+  name: string;
+  role: 'client' | 'trainer' | 'admin';
+  is_active: boolean;
   phone?: string;
-  email?: string;
+  telegram_id?: string;
+  created_at: string;
+  updated_at: string;
+  client_profile?: {
+    id: string;
+    subscription_status?: string;
+    subscription_expires?: string;
+    goals?: string[];
+    fitness_level?: string;
+  };
+  trainer_profile?: {
+    id:string;
+    qualifications?: string[];
+    specializations?: string[];
+    experience_years?: number;
+    bio?: string;
+    rating?: number;
+  };
+  // Client-side augmented fields for UI display
+  firstName?: string;
+  lastName?: string;
   avatar?: string;
-  level?: string; // для уровня ученика (пояса)
-  joinDate: Date;
 }
 
 export interface Workout {
   id: string;
-  title: string;
+  name: string;
   type: 'strength' | 'cardio' | 'flexibility' | 'group' | 'personal';
   date: Date;
   duration: number; // minutes
@@ -222,4 +241,6 @@ export interface Coach {
   whatsappNumber?: string;
   isActive: boolean;
   joinDate: Date;
-} 
+  status: 'active' | 'inactive';
+  expiresAt: string;
+}

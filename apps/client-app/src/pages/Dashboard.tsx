@@ -114,7 +114,7 @@ export const Dashboard: React.FC = () => {
               upcomingWorkouts.map((workout) => (
                 <div key={workout.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
-                    <h3 className="font-medium text-gray-900">{workout.title}</h3>
+                    <h3 className="font-medium text-gray-900">{workout.name}</h3>
                     <p className="text-sm text-gray-600">
                       {new Date(workout.date).toLocaleDateString('ru-RU', {
                         weekday: 'short',
