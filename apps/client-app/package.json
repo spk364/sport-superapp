@@ -2,7 +2,7 @@
   "name": "client-app",
   "version": "0.1.0",
   "private": true,
-  "homepage": "/sport-superapp/client",
+  "homepage": "https://spk364.github.io/sport-superapp/client",
   "dependencies": {
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
