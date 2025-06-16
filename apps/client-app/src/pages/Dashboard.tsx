@@ -10,6 +10,7 @@ import {
 import { Header } from '../components/common/Header';
 import { AIAssistantWidget } from '../components/common/AIAssistantWidget';
 import { MyCoachWidget } from '../components/common/MyCoachWidget';
+import { DashboardCalendar } from '../components/dashboard/DashboardCalendar';
 import { useAppStore } from '../store';
 
 export const Dashboard: React.FC = () => {
@@ -78,11 +79,14 @@ export const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* AI Assistant Widget */}
-        <AIAssistantWidget />
-
         {/* My Coach Widget */}
         <MyCoachWidget />
+
+        {/* Calendar */}
+        <DashboardCalendar />
+
+        {/* AI Assistant Widget */}
+        <AIAssistantWidget />
 
         {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-4">
