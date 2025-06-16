@@ -14,7 +14,7 @@ from backend.database.models import Base
 
 # Асинхронный движок для SQLite
 async_engine = create_async_engine(
-    settings.DATABASE_URL,
+    "sqlite+aiosqlite:///./trainer.db",
     echo=settings.DEBUG,
     pool_pre_ping=True,
 )
@@ -28,7 +28,7 @@ AsyncSessionLocal = async_sessionmaker(
 
 # Синхронный движок для Alembic
 sync_engine = create_engine(
-    settings.database_url_sync,
+    "sqlite:///./trainer.db",
     echo=settings.DEBUG,
     pool_pre_ping=True,
 )

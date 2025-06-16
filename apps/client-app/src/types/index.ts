@@ -206,4 +206,20 @@ export interface Meal {
   fats: number;
   ingredients: string[];
   recipe?: string;
+}
+
+export interface Coach {
+  id: string;
+  firstName: string;
+  lastName: string;
+  avatar?: string;
+  bio?: string;
+  specialization?: string;
+  experience?: number; // years
+  certifications?: string[];
+  phone?: string;
+  telegramId?: string;
+  whatsappNumber?: string;
+  isActive: boolean;
+  joinDate: Date;
 } 

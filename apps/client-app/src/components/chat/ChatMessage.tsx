@@ -1,5 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
+import ReactMarkdown from 'react-markdown';
 import { Message } from '../../hooks/useChat';
 
 interface ChatMessageProps {
@@ -25,7 +26,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
             <span className="text-xs text-gray-500">Тренер</span>
           </div>
         )}
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.text}</p>
+        <div className="text-sm leading-relaxed prose prose-sm max-w-none">
+          <ReactMarkdown>{message.text}</ReactMarkdown>
+        </div>
         <p className={`text-xs mt-1 ${
           isUser ? 'text-blue-100' : 'text-gray-400'
         }`}>

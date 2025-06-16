@@ -9,10 +9,11 @@ import {
 } from '@heroicons/react/24/outline';
 import { Header } from '../components/common/Header';
 import { AIAssistantWidget } from '../components/common/AIAssistantWidget';
+import { MyCoachWidget } from '../components/common/MyCoachWidget';
 import { useAppStore } from '../store';
 
 export const Dashboard: React.FC = () => {
-  const { user, subscription, homeTasks, workouts, setCurrentPage } = useAppStore();
+  const { subscription, homeTasks, workouts, setCurrentPage } = useAppStore();
 
   const upcomingWorkouts = workouts
     .filter(w => w.status === 'scheduled' && new Date(w.date) > new Date())
@@ -79,6 +80,9 @@ export const Dashboard: React.FC = () => {
 
         {/* AI Assistant Widget */}
         <AIAssistantWidget />
+
+        {/* My Coach Widget */}
+        <MyCoachWidget />
 
         {/* Quick Stats */}
         <div className="grid grid-cols-3 gap-4">

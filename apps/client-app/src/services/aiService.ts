@@ -1,3 +1,5 @@
+import { Coach } from '../types';
+
 // API base URL - в production это должен быть URL вашего backend
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -71,6 +73,22 @@ class AIService {
     return response.json();
   }
 
+  private async makeGetRequest<T>(endpoint: string): Promise<T> {
+    const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Ошибка сервера' }));
+      throw new Error(error.detail || 'Ошибка при обращении к серверу');
+    }
+
+    return response.json();
+  }
+
   /**
    * Отправить сообщение в чат с виртуальным тренером
    */
@@ -108,6 +126,14 @@ class AIService {
    */
   async createNutritionPlan(nutritionData: any): Promise<any> {
     return this.makeRequest('/llm/nutrition/create', nutritionData);
+  }
+
+  /**
+   * Получить информацию о тренере
+   */
+  async getCoachInfo(userId?: string): Promise<Coach> {
+    const endpoint = userId ? `/coach/profile/${userId}` : '/coach/profile';
+    return this.makeGetRequest<Coach>(endpoint);
   }
 }
 
