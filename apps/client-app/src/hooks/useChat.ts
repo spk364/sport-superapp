@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { aiService } from '../services/aiService';
+import { User } from '../types';
 
 export interface Message {
   id: string;
@@ -8,10 +9,28 @@ export interface Message {
   timestamp: Date;
 }
 
-export const useChat = (userId: string) => {
+export const useChat = (userId: string, user?: User | null) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId] = useState(() => `session-${Date.now()}`);
+
+  const createUserProfileContext = useCallback(() => {
+    if (!user) return undefined;
+
+    return {
+      age: user.preferences?.age,
+      gender: user.preferences?.gender,
+      height: user.client_profile?.body_metrics?.height,
+      weight: user.client_profile?.body_metrics?.weight,
+      goals: user.client_profile?.goals,
+      fitness_level: user.client_profile?.fitness_level,
+      equipment: user.client_profile?.equipment_available,
+      limitations: user.client_profile?.limitations,
+      nutrition_goal: user.preferences?.nutrition_goal,
+      food_preferences: user.preferences?.food_preferences,
+      allergies: user.preferences?.allergies,
+    };
+  }, [user]);
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isLoading) return;
@@ -27,11 +46,16 @@ export const useChat = (userId: string) => {
     setIsLoading(true);
 
     try {
+      const userProfile = createUserProfileContext();
+      
+      console.log('Sending chat with profile context:', userProfile);
+
       const response = await aiService.sendChatMessage({
         user_id: userId,
         session_id: sessionId,
         message: text.trim(),
-        attachments: []
+        attachments: [],
+        user_profile: userProfile
       });
 
       const aiMessage: Message = {
@@ -54,7 +78,7 @@ export const useChat = (userId: string) => {
     } finally {
       setIsLoading(false);
     }
-  }, [userId, sessionId, isLoading]);
+  }, [userId, sessionId, isLoading, createUserProfileContext]);
 
   const initializeChat = useCallback((welcomeText: string) => {
     const welcomeMessage: Message = {

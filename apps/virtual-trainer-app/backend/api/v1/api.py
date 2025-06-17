@@ -4,7 +4,7 @@
 
 from fastapi import APIRouter
 
-from backend.api.v1.endpoints import llm, auth, users, programs, chat, coach
+from backend.api.v1.endpoints import llm, auth, users, programs, chat, coach, workouts
 
 api_router = APIRouter()
 
@@ -14,4 +14,5 @@ api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(llm.router, prefix="/llm", tags=["llm"])
 api_router.include_router(programs.router, prefix="/programs", tags=["programs"])
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
-api_router.include_router(coach.router, prefix="/coach", tags=["coach"]) 
+api_router.include_router(coach.router, prefix="/coach", tags=["coach"])
+api_router.include_router(workouts.router, prefix="/workouts", tags=["workouts"]) 

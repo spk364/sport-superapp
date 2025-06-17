@@ -15,19 +15,33 @@ export const MyCoachWidget: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+
     const fetchCoachInfo = async () => {
       try {
         setLoading(true);
+        setError(null);
         const coachData = await aiService.getCoachInfo();
-        setCoach(coachData);
+        if (mounted) {
+          setCoach(coachData);
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Ошибка загрузки данных тренера');
+        if (mounted) {
+          console.error('Failed to fetch coach info:', err);
+          setError(err instanceof Error ? err.message : 'Ошибка загрузки данных тренера');
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchCoachInfo();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const handleWhatsAppClick = () => {

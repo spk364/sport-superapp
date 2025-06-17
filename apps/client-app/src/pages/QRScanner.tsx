@@ -3,7 +3,7 @@ import { QrCodeIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useAppStore } from '../store';
 
 export const QRScanner: React.FC = () => {
-  const { setCurrentPage } = useAppStore();
+  const setCurrentPage = useAppStore((state) => state.setCurrentPage);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-80 flex flex-col items-center justify-center z-50">

@@ -33,6 +33,9 @@ class ClientProfile(BaseModel):
     subscription_expires: Optional[datetime] = None
     goals: Optional[List[str]] = None
     fitness_level: Optional[str] = None
+    equipment_available: Optional[List[str]] = None
+    limitations: Optional[List[str]] = None
+    body_metrics: Optional[Dict[str, Any]] = None
 
 
 class User(BaseModel):

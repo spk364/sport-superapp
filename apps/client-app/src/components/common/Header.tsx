@@ -13,7 +13,9 @@ export const Header: React.FC<HeaderProps> = ({
   showNotifications = true,
   showChat = true,
 }) => {
-  const { user, unreadCount, setCurrentPage } = useAppStore();
+  const user = useAppStore((state) => state.user);
+  const unreadCount = useAppStore((state) => state.unreadCount);
+  const setCurrentPage = useAppStore((state) => state.setCurrentPage);
 
   return (
     <div className="bg-white border-b border-gray-200 px-4 py-3 safe-area-pt">

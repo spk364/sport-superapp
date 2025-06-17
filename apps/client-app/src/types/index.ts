@@ -8,12 +8,25 @@ export interface User {
   telegram_id?: string;
   created_at: string;
   updated_at: string;
+  preferences?: {
+    age?: number;
+    gender?: 'Мужской' | 'Женский';
+    nutrition_goal?: string;
+    food_preferences?: string[];
+    allergies?: string[];
+  };
   client_profile?: {
     id: string;
     subscription_status?: string;
     subscription_expires?: string;
     goals?: string[];
     fitness_level?: string;
+    equipment_available?: string[];
+    limitations?: string[];
+    body_metrics?: {
+      height?: number;
+      weight?: number;
+    };
   };
   trainer_profile?: {
     id:string;

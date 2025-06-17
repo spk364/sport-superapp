@@ -16,12 +16,28 @@ router = APIRouter()
 
 
 # Pydantic модели для запросов и ответов
+class UserProfile(BaseModel):
+    """Профиль пользователя для контекста чата"""
+    age: Optional[int] = Field(default=None, description="Возраст")
+    gender: Optional[str] = Field(default=None, description="Пол")
+    height: Optional[int] = Field(default=None, description="Рост в см")
+    weight: Optional[int] = Field(default=None, description="Вес в кг")
+    goals: Optional[List[str]] = Field(default=None, description="Цели тренировок")
+    fitness_level: Optional[str] = Field(default=None, description="Уровень подготовки")
+    equipment: Optional[List[str]] = Field(default=None, description="Доступное оборудование")
+    limitations: Optional[List[str]] = Field(default=None, description="Ограничения")
+    nutrition_goal: Optional[str] = Field(default=None, description="Цель питания")
+    food_preferences: Optional[List[str]] = Field(default=None, description="Пищевые предпочтения")
+    allergies: Optional[List[str]] = Field(default=None, description="Аллергии")
+
+
 class ChatRequest(BaseModel):
     """Запрос для чата с виртуальным тренером"""
     user_id: str = Field(..., description="ID пользователя")
     session_id: str = Field(..., description="ID сессии чата")
     message: str = Field(..., description="Сообщение пользователя")
     attachments: List[str] = Field(default=[], description="Список URL файлов")
+    user_profile: Optional[UserProfile] = Field(default=None, description="Профиль пользователя для контекста")
 
 
 class ChatResponse(BaseModel):
@@ -97,14 +113,43 @@ async def send_chat_message(request: ChatRequest):
     """
     try:
         logger.info(f"Получен чат запрос от пользователя {request.user_id}")
+        logger.info(f"Профиль пользователя: {request.user_profile}")
         
-        # TODO: Получить историю чата и контекст пользователя из БД
-        # Пока используем mock данные
+        # TODO: Получить историю чата из БД
         chat_history = []  # История последних сообщений
-        user_context = {    # Контекст пользователя
-            "goals": ["снижение веса"],
-            "fitness_level": "начальный"
-        }
+        
+        # Создаем контекст пользователя из переданного профиля
+        user_context = {}
+        if request.user_profile:
+            # Основные физические характеристики
+            if request.user_profile.age:
+                user_context["age"] = request.user_profile.age
+            if request.user_profile.gender:
+                user_context["gender"] = request.user_profile.gender
+            if request.user_profile.height:
+                user_context["height"] = f"{request.user_profile.height} см"
+            if request.user_profile.weight:
+                user_context["weight"] = f"{request.user_profile.weight} кг"
+            
+            # Фитнес-цели и уровень
+            if request.user_profile.goals:
+                user_context["goals"] = request.user_profile.goals
+            if request.user_profile.fitness_level:
+                user_context["fitness_level"] = request.user_profile.fitness_level
+            
+            # Оборудование и ограничения
+            if request.user_profile.equipment:
+                user_context["equipment"] = request.user_profile.equipment
+            if request.user_profile.limitations:
+                user_context["limitations"] = request.user_profile.limitations
+            
+            # Питание
+            if request.user_profile.nutrition_goal:
+                user_context["nutrition_goal"] = request.user_profile.nutrition_goal
+            if request.user_profile.food_preferences:
+                user_context["food_preferences"] = request.user_profile.food_preferences
+            if request.user_profile.allergies:
+                user_context["allergies"] = request.user_profile.allergies
         
         # Вызов LLM сервиса
         result = await llm_service.chat_with_virtual_trainer(

@@ -10,7 +10,7 @@ import { useAppStore } from '../../store';
 import { Workout } from '../../types';
 
 export const DashboardCalendar: React.FC = () => {
-  const { workouts } = useAppStore();
+  const workouts = useAppStore((state) => state.workouts);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
 

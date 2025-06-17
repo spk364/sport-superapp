@@ -1,41 +1,23 @@
 import React, { useEffect } from 'react';
 import { useAppStore } from './store';
-import { aiService } from './services/aiService';
 import { Dashboard } from './pages/Dashboard';
 import { Progress } from './pages/Progress';
 import { Chat } from './pages/Chat';
 import { QRScanner } from './pages/QRScanner';
 import { Profile } from './pages/Profile';
 import { BottomNavigation } from './components/common/BottomNavigation';
-// Import other pages as needed, e.g., Profile
+import { Loader } from './components/common/Loader';
 
 const App: React.FC = () => {
-  const { currentPage, setUser, setLoading, setError } = useAppStore();
+  const fetchUser = useAppStore((state) => state.fetchUser);
+  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
+  const isLoading = useAppStore((state) => state.isLoading);
+  const currentPage = useAppStore((state) => state.currentPage);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        setLoading(true);
-        const user = await aiService.getCurrentUser();
-        // The backend `name` field needs to be split for the UI
-        const [firstName, ...lastNameParts] = user.name.split(' ');
-        const augmentedUser = {
-          ...user,
-          firstName,
-          lastName: lastNameParts.join(' '),
-          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`,
-        };
-        setUser(augmentedUser);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch user');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchUser();
-  }, [setUser, setLoading, setError]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -49,13 +31,18 @@ const App: React.FC = () => {
         return <QRScanner />;
       case 'profile':
         return <Profile />;
-      // case 'profile':
-      //   return <Profile />;
       default:
         return <Dashboard />;
     }
   };
 
+  // Show loader while checking authentication
+  if (isLoading) {
+    return <Loader />;
+  }
+
+  // For now, show content regardless of authentication status
+  // This prevents the infinite loop while authentication is being handled
   return (
     <div className="relative min-h-screen">
       <main className="pb-20">

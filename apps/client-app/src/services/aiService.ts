@@ -8,6 +8,19 @@ export interface ChatRequest {
   session_id: string;
   message: string;
   attachments?: string[];
+  user_profile?: {
+    age?: number;
+    gender?: string;
+    height?: number;
+    weight?: number;
+    goals?: string[];
+    fitness_level?: string;
+    equipment?: string[];
+    limitations?: string[];
+    nutrition_goal?: string;
+    food_preferences?: string[];
+    allergies?: string[];
+  };
 }
 
 export interface ChatResponse {
@@ -141,6 +154,32 @@ class AIService {
    */
   async getCurrentUser(): Promise<User> {
     return this.makeGetRequest<User>('/users/me');
+  }
+
+  /**
+   * Обновить профиль пользователя данными из анкеты
+   */
+  async updateUserProfile(answers: Record<string, any>): Promise<User> {
+    return this.makeRequest<User>('/users/profile/update', answers);
+  }
+
+  /**
+   * Получить список тренировок для календаря
+   */
+  async getWorkouts(params?: {
+    client_id?: string;
+    date_from?: string;
+    date_to?: string;
+    status?: string;
+  }): Promise<any[]> {
+    const queryParams = new URLSearchParams();
+    if (params?.client_id) queryParams.append('client_id', params.client_id);
+    if (params?.date_from) queryParams.append('date_from', params.date_from);
+    if (params?.date_to) queryParams.append('date_to', params.date_to);
+    if (params?.status) queryParams.append('status', params.status);
+    
+    const endpoint = `/workouts${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    return this.makeGetRequest<any[]>(endpoint);
   }
 }
 

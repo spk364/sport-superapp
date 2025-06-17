@@ -106,15 +106,65 @@ class LLMService:
         if not user_message.strip():
             raise ValidationError("Сообщение не может быть пустым")
         
-        # Формирование контекста
+        # Формирование детального контекста пользователя
         context_info = ""
         if user_context:
+            # Физические характеристики
+            physical_info = []
+            if user_context.get("age"):
+                physical_info.append(f"возраст {user_context['age']} лет")
+            if user_context.get("gender"):
+                physical_info.append(f"пол {user_context['gender']}")
+            if user_context.get("height"):
+                physical_info.append(f"рост {user_context['height']}")
+            if user_context.get("weight"):
+                physical_info.append(f"вес {user_context['weight']}")
+            if physical_info:
+                context_info += f"Физические данные: {', '.join(physical_info)}. "
+            
+            # Фитнес-информация
             if user_context.get("goals"):
-                context_info += f"Цели клиента: {', '.join(user_context['goals'])}. "
+                if isinstance(user_context['goals'], list):
+                    goals_str = ', '.join(user_context['goals'])
+                else:
+                    goals_str = user_context['goals']
+                context_info += f"Цели тренировок: {goals_str}. "
+            
             if user_context.get("fitness_level"):
                 context_info += f"Уровень подготовки: {user_context['fitness_level']}. "
+            
+            if user_context.get("equipment"):
+                if isinstance(user_context['equipment'], list):
+                    equipment_str = ', '.join(user_context['equipment'])
+                else:
+                    equipment_str = user_context['equipment']
+                context_info += f"Доступное оборудование: {equipment_str}. "
+            
             if user_context.get("limitations"):
-                context_info += f"Ограничения: {', '.join(user_context['limitations'])}. "
+                if isinstance(user_context['limitations'], list):
+                    limitations_str = ', '.join(user_context['limitations'])
+                else:
+                    limitations_str = user_context['limitations']
+                context_info += f"Ограничения: {limitations_str}. "
+            
+            # Питание
+            nutrition_info = []
+            if user_context.get("nutrition_goal"):
+                nutrition_info.append(f"цель питания: {user_context['nutrition_goal']}")
+            if user_context.get("food_preferences"):
+                if isinstance(user_context['food_preferences'], list):
+                    prefs_str = ', '.join(user_context['food_preferences'])
+                else:
+                    prefs_str = user_context['food_preferences']
+                nutrition_info.append(f"предпочтения: {prefs_str}")
+            if user_context.get("allergies"):
+                if isinstance(user_context['allergies'], list):
+                    allergies_str = ', '.join(user_context['allergies'])
+                else:
+                    allergies_str = user_context['allergies']
+                nutrition_info.append(f"аллергии: {allergies_str}")
+            if nutrition_info:
+                context_info += f"Питание: {', '.join(nutrition_info)}. "
         
         # Формирование сообщений
         messages = [

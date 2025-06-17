@@ -83,7 +83,20 @@ class UserService:
         self._save_user_data(user_id)
 
     def get_user_profile(self, user_id: str) -> Dict[str, Any]:
-        """Get user profile data"""
+        """Get user profile data - force reload from file to ensure fresh data"""
+        # Force reload from file to get latest data
+        try:
+            file_path = self._get_user_file_path(user_id)
+            if os.path.exists(file_path):
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    file_data = json.load(f)
+                    # Update in-memory cache
+                    self._user_sessions[user_id] = file_data
+                    return file_data.get("context", {})
+        except Exception as e:
+            print(f"Error loading user profile from file: {e}")
+        
+        # Fallback to in-memory session
         session = self.get_user_session(user_id)
         return session["context"]
 

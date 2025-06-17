@@ -18,7 +18,7 @@ export const WorkoutProgramGenerator: React.FC<WorkoutProgramGeneratorProps> = (
     sessions_per_week: 3,
     limitations: [] as string[]
   });
-  const { user } = useAppStore();
+  const user = useAppStore((state) => state.user);
 
   const goals = [
     'Снижение веса',

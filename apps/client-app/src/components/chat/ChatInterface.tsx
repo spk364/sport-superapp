@@ -4,14 +4,19 @@ import { useAppStore } from '../../store';
 import { ChatMessage } from './ChatMessage';
 import { TypingIndicator } from './TypingIndicator';
 import { QuickActions } from './QuickActions';
+import { Questionnaire } from '../questionnaire';
 import { useChat } from '../../hooks/useChat';
 
 export const ChatInterface: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
+  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { user } = useAppStore();
+  const user = useAppStore((state) => state.user);
+  const isQuestionnaireActive = useAppStore((state) => state.isQuestionnaireActive);
+  const setQuestionnaireActive = useAppStore((state) => state.setQuestionnaireActive);
+  const updateUserProfile = useAppStore((state) => state.updateUserProfile);
   
-  const { messages, isLoading, sendMessage, initializeChat } = useChat(user?.id || '');
+  const { messages, isLoading, sendMessage, initializeChat } = useChat(user?.id || '', user);
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -28,17 +33,76 @@ export const ChatInterface: React.FC = () => {
     initializeChat(welcomeText);
   }, [user?.firstName, initializeChat]);
 
+  // Handle questionnaire activation
+  useEffect(() => {
+    if (isQuestionnaireActive && messages.length > 0) {
+      // Show questionnaire instead of sending a message
+      setShowQuestionnaire(true);
+      setQuestionnaireActive(false);
+    }
+  }, [isQuestionnaireActive, messages.length, setQuestionnaireActive]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (inputValue.trim()) {
+      // Check if user is asking for questionnaire
+      const message = inputValue.toLowerCase().trim();
+      if (message.includes('анкет') || message.includes('заполнить') || message.includes('профиль') || 
+          message.includes('questionnaire') || message.includes('вопрос')) {
+        setShowQuestionnaire(true);
+        setInputValue('');
+        return;
+      }
+      
       sendMessage(inputValue);
       setInputValue('');
     }
   };
 
   const handleQuickAction = (text: string) => {
+    // Check if quick action should trigger questionnaire
+    if (text.includes('анкет') || text.includes('профиль')) {
+      setShowQuestionnaire(true);
+      return;
+    }
     sendMessage(text);
   };
+
+  const handleQuestionnaireComplete = async (answers: Record<string, any>) => {
+    console.log('Questionnaire completed with answers:', answers);
+    setShowQuestionnaire(false);
+    
+    try {
+      // Update user profile with answers
+      console.log('Updating user profile...');
+      await updateUserProfile(answers);
+      console.log('User profile updated successfully');
+      
+      // Send a confirmation message
+      const confirmationMessage = "Отлично! Анкета заполнена. Теперь я могу предоставить вам персонализированные рекомендации по тренировкам и питанию.";
+      sendMessage(confirmationMessage);
+    } catch (error) {
+      console.error('Failed to update user profile:', error);
+      
+      // Show error message to user
+      const errorMessage = "Произошла ошибка при сохранении анкеты. Пожалуйста, попробуйте еще раз.";
+      sendMessage(errorMessage);
+    }
+  };
+
+  const handleQuestionnaireClose = () => {
+    setShowQuestionnaire(false);
+  };
+
+  // Show questionnaire overlay if active
+  if (showQuestionnaire) {
+    return (
+      <Questionnaire 
+        onComplete={handleQuestionnaireComplete}
+        onClose={handleQuestionnaireClose}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
