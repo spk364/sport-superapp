@@ -77,6 +77,78 @@ const createMockWorkouts = (): Workout[] => {
   return workouts;
 };
 
+// Chat message interface
+export interface ChatMessage {
+  id: string;
+  text: string;
+  sender: 'user' | 'ai';
+  timestamp: Date;
+}
+
+// Chat session interface  
+export interface ChatSession {
+  sessionId: string;
+  userId: string;
+  startTime: string;
+  lastActivity: string;
+  messageCount: number;
+}
+
+// Chat history storage utilities
+const CHAT_HISTORY_KEY = 'ai_trainer_chat_history';
+const MAX_STORED_MESSAGES = 100;
+const CHAT_SESSION_KEY = 'ai_trainer_chat_session';
+
+const saveChatHistory = (userId: string, messages: ChatMessage[]) => {
+  try {
+    const chatData = {
+      userId,
+      messages: messages.slice(-MAX_STORED_MESSAGES),
+      lastUpdated: new Date().toISOString(),
+      version: '1.0'
+    };
+    localStorage.setItem(`${CHAT_HISTORY_KEY}_${userId}`, JSON.stringify(chatData));
+  } catch (error) {
+    console.warn('Failed to save chat history:', error);
+  }
+};
+
+const loadChatHistory = (userId: string): ChatMessage[] => {
+  try {
+    const stored = localStorage.getItem(`${CHAT_HISTORY_KEY}_${userId}`);
+    if (!stored) return [];
+    
+    const chatData = JSON.parse(stored);
+    if (chatData.userId !== userId) return [];
+    
+    return chatData.messages.map((msg: any) => ({
+      ...msg,
+      timestamp: new Date(msg.timestamp)
+    }));
+  } catch (error) {
+    console.warn('Failed to load chat history:', error);
+    return [];
+  }
+};
+
+const saveSession = (session: ChatSession) => {
+  try {
+    localStorage.setItem(`${CHAT_SESSION_KEY}_${session.userId}`, JSON.stringify(session));
+  } catch (error) {
+    console.warn('Failed to save session:', error);
+  }
+};
+
+const loadSession = (userId: string): ChatSession | null => {
+  try {
+    const stored = localStorage.getItem(`${CHAT_SESSION_KEY}_${userId}`);
+    return stored ? JSON.parse(stored) : null;
+  } catch (error) {
+    console.warn('Failed to load session:', error);
+    return null;
+  }
+};
+
 interface AppState {
   // User data
   user: User | null;
@@ -106,6 +178,12 @@ interface AppState {
   notifications: Notification[];
   unreadCount: number;
   
+  // Chat
+  chatMessages: ChatMessage[];
+  chatSession: ChatSession | null;
+  chatLoading: boolean;
+  chatInitialized: boolean;
+  
   // UI State
   isLoading: boolean;
   error: string | null;
@@ -134,6 +212,13 @@ interface AppState {
   startQuestionnaire: () => void;
   setQuestionnaireActive: (isActive: boolean) => void;
   updateUserProfile: (answers: Record<string, any>) => Promise<void>;
+  
+  // Chat actions
+  initializeChat: (userId: string) => void;
+  sendChatMessage: (userId: string, message: string, userProfile?: any) => Promise<void>;
+  addChatMessage: (message: ChatMessage) => void;
+  clearChatHistory: (userId: string) => void;
+  setChatLoading: (loading: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -186,6 +271,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   isLoading: false,
   error: null,
   isQuestionnaireActive: false,
+  chatMessages: [],
+  chatSession: null,
+  chatLoading: false,
+  chatInitialized: false,
 
   // Actions
   fetchUser: async () => {
@@ -363,4 +452,169 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ error: error.message, isLoading: false });
     }
   },
+  
+  // Chat actions
+  initializeChat: (userId) => {
+    const state = get();
+    if (state.chatInitialized) return; // Already initialized
+    
+    // Load chat history
+    const history = loadChatHistory(userId);
+    
+    // Load or create session
+    let session = loadSession(userId);
+    if (!session) {
+      session = {
+        sessionId: `session-${Date.now()}`,
+        userId: userId,
+        startTime: new Date().toISOString(),
+        lastActivity: new Date().toISOString(),
+        messageCount: history.length
+      };
+      saveSession(session);
+    }
+    
+    console.log(`Chat initialized: ${history.length} messages loaded`);
+    
+    set({ 
+      chatMessages: history,
+      chatSession: session,
+      chatInitialized: true 
+    });
+    
+    // Add welcome message if no history
+    if (history.length === 0) {
+      const welcomeMessage: ChatMessage = {
+        id: 'welcome',
+        text: 'Привет! 👋 Я ваш виртуальный тренер. Готов помочь с тренировками, питанием и достижением ваших фитнес-целей. О чём хотите поговорить?',
+        sender: 'ai',
+        timestamp: new Date()
+      };
+      
+      set((state) => ({
+        chatMessages: [welcomeMessage]
+      }));
+    }
+  },
+  
+  sendChatMessage: async (userId, message, userProfile) => {
+    set({ chatLoading: true });
+    try {
+      const state = get();
+      const chatSession = state.chatSession;
+      if (!chatSession) throw new Error('Chat session not initialized');
+      
+      const userMessage: ChatMessage = {
+        id: `user-${Date.now()}`,
+        text: message,
+        sender: 'user',
+        timestamp: new Date()
+      };
+      
+      // Add user message
+      set((state) => ({
+        chatMessages: [...state.chatMessages, userMessage]
+      }));
+      
+      // Call AI service
+      const response = await aiService.sendChatMessage({
+        user_id: userId,
+        session_id: chatSession.sessionId,
+        message: message,
+        attachments: [],
+        user_profile: userProfile
+      });
+      
+      const aiMessage: ChatMessage = {
+        id: `ai-${Date.now()}`,
+        text: response.response_text,
+        sender: 'ai',
+        timestamp: new Date(response.timestamp)
+      };
+      
+      // Add AI message
+      set((state) => ({
+        chatMessages: [...state.chatMessages, aiMessage]
+      }));
+      
+      // Update session
+      const updatedSession = {
+        ...chatSession,
+        messageCount: state.chatMessages.length + 2,
+        lastActivity: new Date().toISOString()
+      };
+      set({ chatSession: updatedSession });
+      saveSession(updatedSession);
+      saveChatHistory(userId, [...state.chatMessages, userMessage, aiMessage]);
+      
+    } catch (error) {
+      console.error('Failed to send chat message:', error);
+      const errorMessage: ChatMessage = {
+        id: `error-${Date.now()}`,
+        text: 'Извините, произошла ошибка. Попробуйте ещё раз.',
+        sender: 'ai',
+        timestamp: new Date()
+      };
+      
+      set((state) => ({
+        chatMessages: [...state.chatMessages, errorMessage]
+      }));
+    } finally {
+      set({ chatLoading: false });
+    }
+  },
+  
+  addChatMessage: (message) => set((state) => {
+    const newMessages = [...state.chatMessages, message];
+    
+    // Auto-save to localStorage if we have a session
+    if (state.chatSession) {
+      saveChatHistory(state.chatSession.userId, newMessages);
+      
+      // Update session
+      const updatedSession = {
+        ...state.chatSession,
+        lastActivity: new Date().toISOString(),
+        messageCount: newMessages.length
+      };
+      saveSession(updatedSession);
+      
+      return {
+        chatMessages: newMessages,
+        chatSession: updatedSession
+      };
+    }
+    
+    return { chatMessages: newMessages };
+  }),
+  
+  clearChatHistory: (userId) => {
+    try {
+      // Clear localStorage
+      localStorage.removeItem(`${CHAT_HISTORY_KEY}_${userId}`);
+      localStorage.removeItem(`${CHAT_SESSION_KEY}_${userId}`);
+      
+      // Create new session
+      const newSession: ChatSession = {
+        sessionId: `session-${Date.now()}`,
+        userId: userId,
+        startTime: new Date().toISOString(),
+        lastActivity: new Date().toISOString(),
+        messageCount: 0
+      };
+      saveSession(newSession);
+      
+      // Reset chat state
+      set({ 
+        chatMessages: [],
+        chatSession: newSession
+      });
+      
+      console.log('Chat history cleared, new session created');
+    } catch (error) {
+      console.warn('Failed to clear chat history:', error);
+    }
+  },
+  
+  setChatLoading: (loading) => set({ chatLoading: loading }),
 })); 

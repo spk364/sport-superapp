@@ -1,25 +1,19 @@
 import React, { useState } from 'react';
 import {
   ChartBarIcon,
-  ScaleIcon,
   TrophyIcon,
-  CameraIcon,
-  PlusIcon,
-  MapIcon,
   FireIcon,
   ArrowTrendingUpIcon,
   CalendarIcon,
 } from '@heroicons/react/24/outline';
 import { Header } from '../components/common/Header';
-import { useAppStore } from '../store';
 import { TrainingPlan } from '../components/progress/TrainingPlan';
+import { useAppStore } from '../store';
 
 export const Progress: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'stats' | 'plan'>('stats');
   const progressData = useAppStore((state) => state.progressData);
   const goals = useAppStore((state) => state.goals);
-
-  const latestProgress = progressData[progressData.length - 1];
 
   const tabs = [
     { id: 'stats', label: 'Статистика', icon: ChartBarIcon },

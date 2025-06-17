@@ -10,7 +10,6 @@ import { Loader } from './components/common/Loader';
 
 const App: React.FC = () => {
   const fetchUser = useAppStore((state) => state.fetchUser);
-  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
   const isLoading = useAppStore((state) => state.isLoading);
   const currentPage = useAppStore((state) => state.currentPage);
 

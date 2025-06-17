@@ -5,7 +5,6 @@ import {
   BellIcon,
   QuestionMarkCircleIcon,
   ArrowRightOnRectangleIcon,
-  PencilIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
   CalendarIcon,
@@ -88,7 +87,7 @@ export const Profile: React.FC = () => {
       user.client_profile?.equipment_available?.length,  // 🔧 Equipment: 3 items
       user.client_profile?.limitations?.length,          // 🔧 Limitations: 1 item
       user.client_profile?.body_metrics?.height,         // 🔧 Height: 191
-      user.client_profile?.body_metrics?.weight,         // �� Weight: 97
+      user.client_profile?.body_metrics?.weight,         //  Weight: 97
     ];
     
     console.log('Profile completeness fields:', fields);

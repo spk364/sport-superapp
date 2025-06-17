@@ -1,7 +1,5 @@
 import React from 'react';
 import { LevelNode } from './LevelNode';
-import { PathSegment } from './PathSegment';
-import { TrophyIcon, CheckCircleIcon, LockClosedIcon } from '@heroicons/react/24/solid';
 
 const mockPlan = [
   { level: 1, name: 'Вводная неделя', status: 'completed' },
