@@ -3,6 +3,7 @@ import {
   HomeIcon,
   ChartBarIcon,
   ChatBubbleLeftRightIcon,
+  CalendarDaysIcon,
   QrCodeIcon,
   UserIcon,
 } from '@heroicons/react/24/outline';
@@ -10,6 +11,7 @@ import {
   HomeIcon as HomeIconSolid,
   ChartBarIcon as ChartBarIconSolid,
   ChatBubbleLeftRightIcon as ChatBubbleLeftRightIconSolid,
+  CalendarDaysIcon as CalendarDaysIconSolid,
   QrCodeIcon as QrCodeIconSolid,
   UserIcon as UserIconSolid,
 } from '@heroicons/react/24/solid';
@@ -34,6 +36,12 @@ const navItems: NavItem[] = [
     label: 'Прогресс',
     icon: ChartBarIcon,
     activeIcon: ChartBarIconSolid,
+  },
+  {
+    id: 'calendar',
+    label: 'Календарь',
+    icon: CalendarDaysIcon,
+    activeIcon: CalendarDaysIconSolid,
   },
   {
     id: 'chat',
@@ -61,7 +69,7 @@ export const BottomNavigation: React.FC = () => {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 safe-area-pb">
-      <div className="flex justify-around items-center py-2 max-w-md mx-auto">
+      <div className="flex justify-around items-center py-3 max-w-md mx-auto">
         {navItems.map((item) => {
           const isActive = currentPage === item.id;
           const Icon = isActive ? item.activeIcon : item.icon;
@@ -70,14 +78,14 @@ export const BottomNavigation: React.FC = () => {
             <button
               key={item.id}
               onClick={() => setCurrentPage(item.id)}
-              className={`flex flex-col items-center justify-center p-2 min-w-0 flex-1 ${
+              className={`flex items-center justify-center p-2 min-w-0 flex-1 transition-colors ${
                 isActive
                   ? 'text-primary-600'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
+              title={item.label}
             >
-              <Icon className="h-6 w-6 mb-1" />
-              <span className="text-xs font-medium truncate">{item.label}</span>
+              <Icon className="h-6 w-6" />
             </button>
           );
         })}

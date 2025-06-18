@@ -2,148 +2,185 @@ import React, { useState } from 'react';
 import {
   ChartBarIcon,
   TrophyIcon,
-  FireIcon,
-  ArrowTrendingUpIcon,
   CalendarIcon,
+  DocumentChartBarIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 import { Header } from '../components/common/Header';
+import { ProgressChart } from '../components/progress/ProgressChart';
+import { WorkoutMetrics } from '../components/progress/WorkoutMetrics';
+import { GoalsAchievements } from '../components/progress/GoalsAchievements';
+import { DetailedAnalytics } from '../components/progress/DetailedAnalytics';
 import { TrainingPlan } from '../components/progress/TrainingPlan';
-import { useAppStore } from '../store';
 
 export const Progress: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'stats' | 'plan'>('stats');
-  const progressData = useAppStore((state) => state.progressData);
-  const goals = useAppStore((state) => state.goals);
+  const [activeTab, setActiveTab] = useState<'overview' | 'metrics' | 'goals' | 'analytics' | 'plan'>('overview');
 
   const tabs = [
-    { id: 'stats', label: 'Статистика', icon: ChartBarIcon },
+    { id: 'overview', label: 'Обзор', icon: ChartBarIcon },
+    { id: 'metrics', label: 'Метрики', icon: DocumentChartBarIcon },
+    { id: 'goals', label: 'Цели', icon: TrophyIcon },
+    { id: 'analytics', label: 'Аналитика', icon: SparklesIcon },
     { id: 'plan', label: 'План', icon: CalendarIcon },
   ];
 
-  // Mock data for development
-  const mockStats = [
-    {
-      title: 'Всего тренировок',
-      value: 42,
-      change: '+12 за месяц',
-      trend: 'up',
-      icon: TrophyIcon,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
-    },
-    {
-      title: 'Сожжено калорий',
-      value: 12450,
-      change: '+850 за неделю',
-      trend: 'up',
-      icon: FireIcon,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100',
-    },
-    {
-      title: 'Время тренировок',
-      value: '84ч 30м',
-      change: '+6ч за месяц',
-      trend: 'up',
-      icon: ChartBarIcon,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
-    },
+  // Mock данные для графиков
+  const weightData = [
+    { date: '2024-01-01', value: 82 },
+    { date: '2024-01-08', value: 81.8 },
+    { date: '2024-01-15', value: 81.5 },
+    { date: '2024-01-22', value: 81.2 },
+    { date: '2024-01-29', value: 80.8 },
+    { date: '2024-02-05', value: 80.5 },
+    { date: '2024-02-12', value: 80.3 },
   ];
 
-  const renderStatsTab = () => (
+  const workoutsData = [
+    { date: '2024-01-01', value: 3, label: 'Неделя 1' },
+    { date: '2024-01-08', value: 4, label: 'Неделя 2' },
+    { date: '2024-01-15', value: 3, label: 'Неделя 3' },
+    { date: '2024-01-22', value: 5, label: 'Неделя 4' },
+    { date: '2024-01-29', value: 4, label: 'Неделя 5' },
+    { date: '2024-02-05', value: 4, label: 'Неделя 6' },
+  ];
+
+  const caloriesData = [
+    { date: '2024-01-01', value: 1200 },
+    { date: '2024-01-08', value: 1400 },
+    { date: '2024-01-15', value: 1100 },
+    { date: '2024-01-22', value: 1600 },
+    { date: '2024-01-29', value: 1350 },
+    { date: '2024-02-05', value: 1450 },
+  ];
+
+  const renderOverviewTab = () => (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-4">
-        {mockStats.map((stat, index) => (
-          <div key={index} className="bg-white rounded-lg p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">{stat.title}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="flex items-center space-x-1 text-green-600">
-                  <ArrowTrendingUpIcon className="h-4 w-4" />
-                  <span className="text-sm font-medium">{stat.change}</span>
-                </div>
-              </div>
-            </div>
+      {/* Быстрая статистика */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-4">
+          <div className="flex items-center space-x-2 mb-2">
+            <TrophyIcon className="h-6 w-6" />
+            <span className="text-sm font-medium">Тренировок</span>
           </div>
-        ))}
+          <div className="text-2xl font-bold">47</div>
+          <div className="text-sm opacity-80">+8 за месяц</div>
+        </div>
+
+        <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg p-4">
+          <div className="flex items-center space-x-2 mb-2">
+            <ChartBarIcon className="h-6 w-6" />
+            <span className="text-sm font-medium">Прогресс</span>
+          </div>
+          <div className="text-2xl font-bold">85%</div>
+          <div className="text-sm opacity-80">к цели</div>
+        </div>
       </div>
 
-      {/* Goals */}
-      {goals.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm">
-          <div className="px-4 py-3 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Цели</h2>
-          </div>
-          <div className="p-4 space-y-4">
-            {goals.map((goal) => (
-              <div key={goal.id} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-gray-900">{goal.title}</h3>
-                  <span className="text-sm text-gray-600">{goal.progress}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${goal.progress}%` }}
-                  />
-                </div>
-                <p className="text-sm text-gray-600">{goal.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Графики прогресса */}
+      <ProgressChart
+        title="Изменение веса"
+        data={weightData}
+        unit="кг"
+        color="bg-blue-500"
+        height={180}
+      />
 
-      {/* Progress Chart Placeholder */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">График прогресса</h2>
-        <div className="h-48 bg-gray-100 rounded-lg flex items-center justify-center">
-          <p className="text-gray-500">График будет добавлен в следующих версиях</p>
+      <ProgressChart
+        title="Тренировки в неделю"
+        data={workoutsData}
+        unit=" тр."
+        color="bg-green-500"
+        height={180}
+      />
+
+      <ProgressChart
+        title="Сожжено калорий"
+        data={caloriesData}
+        unit=" кал"
+        color="bg-orange-500"
+        height={180}
+      />
+
+      {/* Краткий обзор целей */}
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Активные цели</h3>
+          <button
+            onClick={() => setActiveTab('goals')}
+            className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+          >
+            Все цели →
+          </button>
+        </div>
+        
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">Сбросить 5 кг</span>
+            <div className="flex items-center space-x-2">
+              <div className="w-20 bg-gray-200 rounded-full h-2">
+                <div className="bg-primary-500 h-2 rounded-full" style={{ width: '60%' }} />
+              </div>
+              <span className="text-sm font-medium">60%</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">Подтянуться 15 раз</span>
+            <div className="flex items-center space-x-2">
+              <div className="w-20 bg-gray-200 rounded-full h-2">
+                <div className="bg-primary-500 h-2 rounded-full" style={{ width: '80%' }} />
+              </div>
+              <span className="text-sm font-medium">80%</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 
-  const renderPlanTab = () => (
-    <TrainingPlan />
-  );
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return renderOverviewTab();
+      case 'metrics':
+        return <WorkoutMetrics />;
+      case 'goals':
+        return <GoalsAchievements />;
+      case 'analytics':
+        return <DetailedAnalytics />;
+      case 'plan':
+        return <TrainingPlan />;
+      default:
+        return renderOverviewTab();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title="Прогресс" />
+      <Header title="Прогресс и аналитика" />
       
       {/* Tab Navigation */}
-      <div className="bg-white border-b border-gray-200 px-4">
-        <div className="flex space-x-8 max-w-md mx-auto">
+      <div className="bg-white border-b border-gray-200 px-4 overflow-x-auto">
+        <div className="flex space-x-1 max-w-full">
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as 'stats' | 'plan')}
-              className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm ${
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center space-x-2 py-3 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'border-primary-500 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              <tab.icon className="h-5 w-5" />
+              <tab.icon className="h-4 w-4" />
               <span>{tab.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <main className="px-4 py-6 max-w-md mx-auto">
-        {activeTab === 'stats' ? renderStatsTab() : renderPlanTab()}
+      <main className="px-4 py-6 max-w-md mx-auto pb-24">
+        {renderContent()}
       </main>
     </div>
   );

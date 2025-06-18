@@ -20,6 +20,7 @@ export const Dashboard: React.FC = () => {
   const workouts = useAppStore((state) => state.workouts);
   const startQuestionnaire = useAppStore((state) => state.startQuestionnaire);
   const loadMockWorkouts = useAppStore((state) => state.loadMockWorkouts);
+  const setCurrentPage = useAppStore((state) => state.setCurrentPage);
   
   const hasInitialized = useRef(false);
 

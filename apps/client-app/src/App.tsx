@@ -5,6 +5,7 @@ import { Progress } from './pages/Progress';
 import { Chat } from './pages/Chat';
 import { QRScanner } from './pages/QRScanner';
 import { Profile } from './pages/Profile';
+import { Calendar } from './pages/Calendar';
 import { BottomNavigation } from './components/common/BottomNavigation';
 import { Loader } from './components/common/Loader';
 
@@ -24,6 +25,8 @@ const App: React.FC = () => {
         return <Dashboard />;
       case 'progress':
         return <Progress />;
+      case 'calendar':
+        return <Calendar />;
       case 'chat':
         return <Chat />;
       case 'qr-scanner':

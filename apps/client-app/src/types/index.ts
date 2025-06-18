@@ -257,3 +257,6 @@ export interface Coach {
   status: 'active' | 'inactive';
   expiresAt: string;
 }
+
+// Export progress and analytics types
+export * from './progress';

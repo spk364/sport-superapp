@@ -3,10 +3,8 @@ import {
   HeartIcon, 
   TrophyIcon, 
   ClockIcon, 
-  UserIcon,
-  PencilSquareIcon
+  UserIcon
 } from '@heroicons/react/24/outline';
-import { useAppStore } from '../../store';
 
 interface QuickActionsProps {
   onAction: (text: string) => void;
@@ -40,8 +38,6 @@ const quickActions = [
 ];
 
 export const QuickActions: React.FC<QuickActionsProps> = ({ onAction }) => {
-  const startQuestionnaire = useAppStore((state) => state.startQuestionnaire);
-
   return (
     <div className="px-4 py-3 bg-white border-t border-gray-200">
       <p className="text-sm text-gray-500 mb-3">Быстрые действия:</p>
@@ -59,13 +55,6 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ onAction }) => {
             </button>
           );
         })}
-        <button
-          onClick={startQuestionnaire}
-          className={`flex items-center space-x-2 px-3 py-2 rounded-lg bg-indigo-100 text-indigo-600 hover:opacity-80 transition-opacity`}
-        >
-          <PencilSquareIcon className="w-4 h-4" />
-          <span className="text-sm font-medium">Заполнить анкету</span>
-        </button>
       </div>
     </div>
   );
