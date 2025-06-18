@@ -260,3 +260,81 @@ export interface Coach {
 
 // Export progress and analytics types
 export * from './progress';
+
+// Apple Health types
+export type HealthDataType = 
+  | 'steps'
+  | 'distance'
+  | 'activeEnergyBurned'
+  | 'basalEnergyBurned'
+  | 'heartRate'
+  | 'bodyMass'
+  | 'height'
+  | 'bodyFatPercentage'
+  | 'leanBodyMass'
+  | 'workouts'
+  | 'sleepAnalysis'
+  | 'restingHeartRate'
+  | 'vo2Max'
+  | 'bloodPressure'
+  | 'bloodGlucose';
+
+export interface HealthKitDataPoint {
+  value: number;
+  unit: string;
+  date: Date;
+  source: string;
+  metadata?: Record<string, any>;
+}
+
+export interface WorkoutData {
+  id: string;
+  type: WorkoutType;
+  startDate: Date;
+  endDate: Date;
+  duration: number; // minutes
+  totalEnergyBurned?: number; // calories
+  totalDistance?: number; // meters
+  averageHeartRate?: number;
+  maxHeartRate?: number;
+  metadata?: {
+    indoorWorkout?: boolean;
+    swimmingLocationType?: string;
+    elevation?: number;
+  };
+}
+
+export type WorkoutType = 
+  | 'running'
+  | 'walking'
+  | 'cycling'
+  | 'swimming'
+  | 'strength'
+  | 'yoga'
+  | 'pilates'
+  | 'dancing'
+  | 'boxing'
+  | 'climbing'
+  | 'rowing'
+  | 'crossTraining'
+  | 'other';
+
+export interface HealthMetrics {
+  steps: HealthKitDataPoint[];
+  calories: HealthKitDataPoint[];
+  weight: HealthKitDataPoint[];
+  heartRate: HealthKitDataPoint[];
+  workouts: WorkoutData[];
+  sleep: SleepData[];
+  bodyComposition: {
+    bodyFat?: HealthKitDataPoint[];
+    leanMass?: HealthKitDataPoint[];
+  };
+}
+
+export interface SleepData {
+  startDate: Date;
+  endDate: Date;
+  value: number; // hours
+  stage: 'inBed' | 'asleep' | 'awake' | 'core' | 'deep' | 'rem';
+}

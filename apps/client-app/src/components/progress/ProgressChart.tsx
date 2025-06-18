@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, HeartIcon } from '@heroicons/react/24/outline';
+import { useAppleHealth } from '../../hooks/useAppleHealth';
 
 interface DataPoint {
   date: string;
@@ -13,6 +14,8 @@ interface ProgressChartProps {
   unit?: string;
   color?: string;
   height?: number;
+  enableAppleHealth?: boolean;
+  appleHealthDataType?: 'weight' | 'steps' | 'calories';
 }
 
 export const ProgressChart: React.FC<ProgressChartProps> = ({
@@ -20,9 +23,45 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
   data,
   unit = '',
   color = 'bg-primary-500',
-  height = 200
+  height = 200,
+  enableAppleHealth = false,
+  appleHealthDataType
 }) => {
+  const { isAuthorized, healthMetrics } = useAppleHealth();
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month');
+
+  // Получаем данные из Apple Health если нужно
+  const getAppleHealthData = (): DataPoint[] => {
+    if (!enableAppleHealth || !isAuthorized || !healthMetrics || !appleHealthDataType) {
+      return data;
+    }
+
+    switch (appleHealthDataType) {
+      case 'weight':
+        return healthMetrics.weight.map((w: any) => ({
+          date: w.date.toString(),
+          value: w.value,
+          label: `${w.value}${w.unit}`
+        }));
+      case 'steps':
+        return healthMetrics.steps.map((s: any) => ({
+          date: s.date.toString(),
+          value: s.value,
+          label: `${s.value} шагов`
+        }));
+      case 'calories':
+        return healthMetrics.calories.map((c: any) => ({
+          date: c.date.toString(),
+          value: c.value,
+          label: `${c.value} ккал`
+        }));
+      default:
+        return data;
+    }
+  };
+
+  const chartData = getAppleHealthData();
+  const isUsingAppleHealth = enableAppleHealth && isAuthorized && healthMetrics && appleHealthDataType;
   
   const periods = [
     { id: 'week', label: 'Неделя' },
@@ -30,8 +69,8 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
     { id: 'year', label: 'Год' },
   ];
 
-  const maxValue = Math.max(...data.map(d => d.value));
-  const minValue = Math.min(...data.map(d => d.value));
+  const maxValue = Math.max(...chartData.map(d => d.value));
+  const minValue = Math.min(...chartData.map(d => d.value));
   const range = maxValue - minValue || 1;
 
   const getBarHeight = (value: number) => {
@@ -45,8 +84,16 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+              <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+            {isUsingAppleHealth && (
+              <div className="flex items-center space-x-1 px-2 py-1 bg-red-100 rounded-full">
+                <HeartIcon className="h-3 w-3 text-red-600" />
+                <span className="text-xs font-medium text-red-600">Health</span>
+              </div>
+            )}
+          </div>
         <div className="relative">
           <select
             value={selectedPeriod}
@@ -73,7 +120,7 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
 
         {/* Chart area */}
         <div className="ml-10 h-full flex items-end justify-between space-x-1">
-          {data.map((point, index) => (
+          {chartData.map((point, index) => (
             <div key={index} className="flex-1 flex flex-col items-center group">
               <div
                 className={`w-full ${color} rounded-t-sm transition-all duration-300 hover:opacity-80 relative group-hover:scale-105`}
@@ -104,13 +151,13 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({
         </div>
         <div className="text-center">
           <div className="text-lg font-semibold text-gray-900">
-            {Math.round(data.reduce((sum, d) => sum + d.value, 0) / data.length)}{unit}
+            {Math.round(chartData.reduce((sum, d) => sum + d.value, 0) / chartData.length)}{unit}
           </div>
           <div className="text-xs text-gray-500">Среднее</div>
         </div>
         <div className="text-center">
           <div className="text-lg font-semibold text-green-600">
-            {data.length > 1 ? `+${Math.round(((data[data.length - 1].value - data[0].value) / data[0].value) * 100)}%` : '0%'}
+            {chartData.length > 1 ? `+${Math.round(((chartData[chartData.length - 1].value - chartData[0].value) / chartData[0].value) * 100)}%` : '0%'}
           </div>
           <div className="text-xs text-gray-500">Рост</div>
         </div>

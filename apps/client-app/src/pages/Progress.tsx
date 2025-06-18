@@ -83,6 +83,8 @@ export const Progress: React.FC = () => {
         unit="кг"
         color="bg-blue-500"
         height={180}
+        enableAppleHealth={true}
+        appleHealthDataType="weight"
       />
 
       <ProgressChart
@@ -99,6 +101,8 @@ export const Progress: React.FC = () => {
         unit=" кал"
         color="bg-orange-500"
         height={180}
+        enableAppleHealth={true}
+        appleHealthDataType="calories"
       />
 
       {/* Краткий обзор целей */}

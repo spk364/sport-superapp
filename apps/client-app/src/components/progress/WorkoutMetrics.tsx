@@ -7,7 +7,10 @@ import {
   CalendarDaysIcon,
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
+  HeartIcon,
 } from '@heroicons/react/24/outline';
+import { useAppleHealth } from '../../hooks/useAppleHealth';
+import { AppleHealthIntegration } from './AppleHealthIntegration';
 
 interface MetricItem {
   title: string;
@@ -35,8 +38,39 @@ interface WorkoutMetricsProps {
 }
 
 export const WorkoutMetrics: React.FC<WorkoutMetricsProps> = ({ data }) => {
-  // Mock data если не передана реальная
-  const metrics = data || {
+  const {
+    isAuthorized,
+    healthMetrics,
+    getWorkouts,
+    getCaloriesToday,
+    getCurrentWeight,
+    getAverageHeartRate,
+  } = useAppleHealth();
+
+  // Вычисляем метрики из Apple Health данных
+  const calculateMetricsFromHealth = () => {
+    if (!isAuthorized || !healthMetrics) {
+      return null;
+    }
+
+    const workouts = getWorkouts(30); // последние 30 дней
+    const totalCalories = healthMetrics.calories.reduce((sum, cal) => sum + cal.value, 0);
+    const totalDuration = workouts.reduce((sum, workout) => sum + workout.duration, 0);
+    const avgHeartRate = getAverageHeartRate();
+
+    return {
+      totalWorkouts: workouts.length,
+      totalDuration,
+      averageIntensity: avgHeartRate ? Math.min(10, Math.max(1, (avgHeartRate - 60) / 10)) : 7.2,
+      caloriesBurned: totalCalories,
+      weeklyFrequency: workouts.length / 4.3, // 30 дней / 7 дней в неделе
+      longestStreak: 12, // TODO: вычислить реальную серию
+    };
+  };
+
+  // Используем данные из Apple Health или fallback на mock/переданные данные
+  const healthData = calculateMetricsFromHealth();
+  const metrics = healthData || data || {
     totalWorkouts: 47,
     totalDuration: 2820, // 47 часов
     averageIntensity: 7.2,
@@ -164,8 +198,18 @@ export const WorkoutMetrics: React.FC<WorkoutMetricsProps> = ({ data }) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-900">Метрики тренировок</h2>
-        <div className="text-sm text-gray-500">Последние 30 дней</div>
+        <div className="flex items-center space-x-2">
+          <h2 className="text-xl font-bold text-gray-900">Метрики тренировок</h2>
+          {isAuthorized && healthData && (
+            <div className="flex items-center space-x-1 px-2 py-1 bg-red-100 rounded-full">
+              <HeartIcon className="h-4 w-4 text-red-600" />
+              <span className="text-xs font-medium text-red-600">Apple Health</span>
+            </div>
+          )}
+        </div>
+        <div className="text-sm text-gray-500">
+          {isAuthorized && healthData ? 'Данные из Apple Health' : 'Последние 30 дней'}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
@@ -231,6 +275,9 @@ export const WorkoutMetrics: React.FC<WorkoutMetricsProps> = ({ data }) => {
           </div>
         </div>
       </div>
+
+      {/* Apple Health Integration */}
+      <AppleHealthIntegration />
     </div>
   );
 }; 
