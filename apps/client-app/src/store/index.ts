@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { User, Workout, Progress, Subscription, HomeTask, Note, Goal, Notification } from '../types';
-import { aiService } from '../services/aiService';
+import { aiService, ConversationMessage } from '../services/aiService';
 
 // Mock workout data for calendar display
 const createMockWorkouts = (): Workout[] => {
@@ -99,6 +99,78 @@ const CHAT_HISTORY_KEY = 'ai_trainer_chat_history';
 const MAX_STORED_MESSAGES = 100;
 const CHAT_SESSION_KEY = 'ai_trainer_chat_session';
 const SESSION_INACTIVITY_TIMEOUT_HOURS = 4; // Reset session after 4 hours of inactivity
+
+// Helper function to build conversation context
+const buildConversationContext = (
+  messages: ChatMessage[], 
+  currentMessage: string,
+  userProfile?: any,
+  sessionInfo?: ChatSession
+): ConversationMessage[] => {
+  const context: ConversationMessage[] = [];
+  
+  // Add system message with user profile and session context
+  if (userProfile || sessionInfo) {
+    let systemPrompt = "Ты виртуальный фитнес-тренер и нутрициолог. ";
+    
+    if (userProfile) {
+      systemPrompt += `Профиль пользователя: `;
+      if (userProfile.age) systemPrompt += `возраст ${userProfile.age} лет, `;
+      if (userProfile.gender) systemPrompt += `пол ${userProfile.gender}, `;
+      if (userProfile.height && userProfile.weight) {
+        systemPrompt += `рост ${userProfile.height}см, вес ${userProfile.weight}кг, `;
+      }
+      if (userProfile.goals?.length) {
+        systemPrompt += `цели: ${userProfile.goals.join(', ')}, `;
+      }
+      if (userProfile.fitness_level) {
+        systemPrompt += `уровень подготовки: ${userProfile.fitness_level}, `;
+      }
+      if (userProfile.equipment?.length) {
+        systemPrompt += `доступное оборудование: ${userProfile.equipment.join(', ')}, `;
+      }
+      if (userProfile.limitations?.length) {
+        systemPrompt += `ограничения: ${userProfile.limitations.join(', ')}, `;
+      }
+      if (userProfile.nutrition_goal) {
+        systemPrompt += `цель по питанию: ${userProfile.nutrition_goal}, `;
+      }
+    }
+    
+    if (sessionInfo) {
+      const sessionDuration = Math.round((new Date().getTime() - new Date(sessionInfo.startTime).getTime()) / (1000 * 60));
+      systemPrompt += `Текущая сессия: ${sessionDuration} минут, ${sessionInfo.messageCount} сообщений. `;
+    }
+    
+    systemPrompt += "Отвечай персонализированно, учитывая контекст всего разговора и профиль пользователя. Будь дружелюбным, мотивирующим и профессиональным.";
+    
+    context.push({
+      role: 'system',
+      content: systemPrompt.trim()
+    });
+  }
+  
+  // Add recent conversation history (last 8 messages to keep context manageable)
+  const recentMessages = messages
+    .slice(-8)
+    .filter(msg => msg.id !== 'welcome' && msg.text.trim()) // Filter out welcome and empty messages
+    .map(msg => ({
+      role: msg.sender === 'user' ? 'user' as const : 'assistant' as const,
+      content: msg.text,
+      timestamp: msg.timestamp.toISOString()
+    }));
+  
+  context.push(...recentMessages);
+  
+  // Add current message
+  context.push({
+    role: 'user' as const,
+    content: currentMessage,
+    timestamp: new Date().toISOString()
+  });
+  
+  return context;
+};
 
 const saveChatHistory = (userId: string, messages: ChatMessage[]) => {
   try {
@@ -546,13 +618,34 @@ export const useAppStore = create<AppState>((set, get) => ({
         chatMessages: [...state.chatMessages, userMessage]
       }));
       
-      // Call AI service
+      // Build comprehensive conversation context
+      const conversationHistory = buildConversationContext(
+        state.chatMessages,
+        message,
+        userProfile,
+        chatSession
+      );
+      
+      console.log(`Sending message with context: ${conversationHistory.length} messages (system + history + current)`);
+      console.log('Context preview:', {
+        systemPrompt: conversationHistory[0]?.role === 'system' ? conversationHistory[0].content.substring(0, 100) + '...' : 'None',
+        historyMessages: conversationHistory.filter(msg => msg.role !== 'system').length - 1, // Exclude current message
+        userProfile: userProfile ? Object.keys(userProfile).filter(key => userProfile[key]).join(', ') : 'None'
+      });
+      
+      // Call AI service with conversation context
       const response = await aiService.sendChatMessage({
         user_id: userId,
         session_id: chatSession.sessionId,
         message: message,
+        conversation_history: conversationHistory,
         attachments: [],
-        user_profile: userProfile
+        user_profile: userProfile,
+        context_settings: {
+          include_recent_messages: 8,
+          include_session_summary: true,
+          max_context_tokens: 3000
+        }
       });
       
       const aiMessage: ChatMessage = {

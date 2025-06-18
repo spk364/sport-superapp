@@ -3,10 +3,17 @@ import { Coach, User } from '../types';
 // API base URL - в production это должен быть URL вашего backend
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
+export interface ConversationMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp?: string;
+}
+
 export interface ChatRequest {
   user_id: string;
   session_id: string;
   message: string;
+  conversation_history?: ConversationMessage[];
   attachments?: string[];
   user_profile?: {
     age?: number;
@@ -20,6 +27,11 @@ export interface ChatRequest {
     nutrition_goal?: string;
     food_preferences?: string[];
     allergies?: string[];
+  };
+  context_settings?: {
+    include_recent_messages: number; // Number of recent messages to include
+    include_session_summary: boolean; // Whether to include session summary
+    max_context_tokens: number; // Maximum tokens for context
   };
 }
 

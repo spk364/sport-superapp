@@ -212,6 +212,7 @@ export const ChatInterface: React.FC = () => {
                 ? ' • Новая сессия' 
                 : sessionInfo.duration > 0 && ` • Активная сессия: ${formatSessionDuration(sessionInfo.duration)}`
               }
+              • 🧠 Контекстная память активна
             </p>
           </div>
         )}
@@ -250,7 +251,7 @@ export const ChatInterface: React.FC = () => {
         {chatMessages.map((message) => (
           <ChatMessage key={message.id} message={message} />
         ))}
-        {chatLoading && <TypingIndicator />}
+        {chatLoading && <TypingIndicator withContext={hasHistory} />}
         <div ref={messagesEndRef} />
       </div>
 
