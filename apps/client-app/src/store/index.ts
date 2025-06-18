@@ -364,7 +364,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       
       // Create a mock user for demo purposes when API is not available
       const mockUser: User = {
-        id: 'demo-user-001',
+        id: '9ff91fd7-1da3-4a37-8550-38902251e578',
         email: 'demo@example.com',
         name: 'Demo User',
         role: 'client',

@@ -207,36 +207,36 @@ class LLMService:
                 )
             except Exception as e:
                 logger.warning(f"Failed to store user message in knowledge base: {e}")
-        
-        # Check if AI needs to use RAG tools
-        needs_context = await self._should_use_rag_tools(user_message, chat_history)
-        
-        if needs_context and user_id:
-            logger.info("AI determined it needs additional context - using RAG tools")
+
+        # Universal approach: Always provide RAG tools, let LLM decide when to use them
+        if user_id and session_id:
+            logger.info("Using RAG-enhanced chat with LLM decision-making")
             
-            # First, make a request with RAG tools available
-            rag_enhanced_result = await self._chat_with_rag_tools(
+            # Always use RAG tools, let AI decide when to call them
+            final_result = await self._chat_with_rag_tools(
                 messages=messages,
                 user_id=user_id,
                 session_id=session_id,
                 user_message=user_message
             )
             
-            if rag_enhanced_result:
-                final_result = rag_enhanced_result
-            else:
+            if not final_result:
                 # Fallback to normal chat if RAG fails
+                logger.warning("RAG-enhanced chat failed, falling back to normal chat")
                 final_result = await self._make_openai_request(
                     messages=messages,
                     request_type=LLMRequestType.CHAT
                 )
+                final_result["used_rag"] = False
         else:
-            # Normal chat without RAG
+            # Normal chat without RAG (no user context)
+            logger.info("Using normal chat (no user context)")
             final_result = await self._make_openai_request(
                 messages=messages,
                 request_type=LLMRequestType.CHAT
             )
-        
+            final_result["used_rag"] = False
+
         # Store AI response in knowledge base
         if user_id and session_id:
             try:
@@ -245,14 +245,14 @@ class LLMService:
                     session_id=session_id,
                     role="assistant",
                     content=final_result["content"],
-                    importance_score=1.2 if needs_context else 1.0
+                    importance_score=1.2 if final_result.get("used_rag", False) else 1.0
                 )
             except Exception as e:
                 logger.warning(f"Failed to store AI message in knowledge base: {e}")
-        
+
         return {
             "response": final_result["content"],
-            "used_rag": needs_context,
+            "used_rag": final_result.get("used_rag", False),
             "metadata": {
                 "tokens_used": final_result["usage"]["total_tokens"],
                 "model": final_result["model"],
@@ -262,68 +262,11 @@ class LLMService:
     
     async def _should_use_rag_tools(self, user_message: str, chat_history: List[Dict[str, str]] = None) -> bool:
         """
-        Determine if the AI should use RAG tools based on the user message and context
-        
-        Args:
-            user_message: Current user message
-            chat_history: Recent chat history
-            
-        Returns:
-            Boolean indicating if RAG tools should be used
+        DEPRECATED: This function is no longer used.
+        RAG tools are now always available and the LLM decides when to use them.
         """
-        
-        # Keywords that indicate need for historical context
-        context_indicators = [
-            # References to past discussions
-            "помнишь", "remember", "вспомни", "recall",
-            "мы обсуждали", "we discussed", "ты говорил", "you said",
-            "раньше", "earlier", "до этого", "before",
-            "тот", "те", "те упражнения", "that exercise", "those exercises",
-            "наша программа", "our program", "план который", "the plan",
-            "мою программу", "my program", "моя программа", "my plan",
-            
-            # Requests for progression/changes
-            "изменить", "change", "заменить", "replace", "адаптировать", "adapt",
-            "изменишь", "will you change", "поменяешь", "will you modify",
-            "прогресс", "progress", "как дела с", "how is", "результаты", "results",
-            
-            # References to specific past mentions
-            "что насчет", "what about", "а как же", "and what about",
-            "можно ли", "can I", "стоит ли", "should I",
-            
-            # Timeline references  
-            "на прошлой неделе", "last week", "вчера", "yesterday",
-            "недавно", "recently", "в последний раз", "last time",
-            
-            # Questions about past information
-            "какое было", "what was", "какой был", "what was",
-            "первое сообщение", "first message", "начало", "beginning",
-            "на сколько", "how much", "сколько хотел", "how much wanted",
-            "цель", "goal", "цели", "goals"
-        ]
-        
-        message_lower = user_message.lower()
-        
-        # Check for direct context indicators
-        for indicator in context_indicators:
-            if indicator in message_lower:
-                logger.debug(f"RAG trigger found: '{indicator}' in message")
-                return True
-        
-        # Check if message is vague and might need context
-        vague_patterns = [
-            "можешь", "хочу", "нужно", "как", "что делать", "совет"
-        ]
-        
-        if len(user_message.split()) < 8:  # Short messages
-            for pattern in vague_patterns:
-                if pattern in message_lower:
-                    # Check if recent chat history is limited
-                    if not chat_history or len(chat_history) < 3:
-                        logger.debug(f"RAG trigger: vague message with limited context")
-                        return True
-        
-        return False
+        # This function is kept for backward compatibility but not used
+        return True
     
     async def _chat_with_rag_tools(
         self,
@@ -333,7 +276,7 @@ class LLMService:
         user_message: str
     ) -> Dict[str, Any]:
         """
-        Enhanced chat that uses RAG tools when needed
+        Enhanced chat that provides RAG tools for AI to use when needed
         
         Args:
             messages: Chat messages to send
@@ -342,34 +285,42 @@ class LLMService:
             user_message: Current user message
             
         Returns:
-            OpenAI response with RAG enhancement
+            OpenAI response with RAG enhancement tracking
         """
         
         try:
             # Add RAG tools to the request
             tools = rag_tools.get_tool_definitions()
             
-            # Enhanced system message for RAG usage
+            # Enhanced system message for intelligent RAG usage
             rag_system_message = """
-            Ты виртуальный тренер с доступом к полной истории разговоров.
             
-            У тебя есть инструменты для поиска в истории разговоров:
-            - search_conversation_history: ищи конкретную информацию из прошлых бесед
-            - get_conversation_summary: получи обзор недавних тем разговоров
-            - find_related_discussions: найди все обсуждения по конкретной теме
+            🧠 ИНСТРУМЕНТЫ ПАМЯТИ:
+            У тебя есть доступ к полной истории разговоров с этим пользователем. Используй эти инструменты разумно:
             
-            ИСПОЛЬЗУЙ эти инструменты когда:
-            - Пользователь ссылается на прошлые разговоры ("те упражнения", "наша программа")
-            - Нужен контекст для персонализированного ответа
-            - Пользователь спрашивает о прогрессе или изменениях
-            - Вопрос требует знания истории пользователя
+            📋 search_conversation_history - найти конкретную информацию из прошлых бесед
+            📊 get_conversation_summary - получить обзор недавних тем и обсуждений  
+            🔍 find_related_discussions - найти все связанные обсуждения по теме
             
-            Сначала используй нужные инструменты, затем дай полный ответ на основе найденной информации.
+            КОГДА ИСПОЛЬЗОВАТЬ:
+            ✅ Пользователь ссылается на прошлые разговоры ("помнишь", "мы обсуждали", "ты говорил")
+            ✅ Спрашивает о своей программе, прогрессе, целях ("моя программа", "как дела с...")
+            ✅ Вопросы требуют персонального контекста ("когда я...", "что я...")
+            ✅ Нужна информация о предыдущих рекомендациях или планах
+            ✅ Пользователь спрашивает о времени/датах событий ("когда", "вчера", "на прошлой неделе")
+            
+            КОГДА НЕ ИСПОЛЬЗОВАТЬ:
+            ❌ Общие вопросы о фитнесе/питании без личного контекста
+            ❌ Новые темы, не связанные с историей
+            ❌ Простые приветствия или благодарности
+            ❌ Вопросы, на которые можешь ответить на основе текущего контекста
+            
+            Принимай решение самостоятельно - если считаешь что информация из истории поможет дать лучший ответ, используй инструменты.
             """
             
             # Modify the first system message to include RAG instructions
             if messages and messages[0]["role"] == "system":
-                messages[0]["content"] = messages[0]["content"] + "\n\n" + rag_system_message
+                messages[0]["content"] = messages[0]["content"] + rag_system_message
             
             # Make request with tools
             response = await self._make_openai_request_with_tools(
@@ -493,7 +444,8 @@ class LLMService:
                     "content": final_response.choices[0].message.content,
                     "usage": {"total_tokens": total_tokens},
                     "model": final_response.model,
-                    "latency_ms": latency_ms
+                    "latency_ms": latency_ms,
+                    "used_rag": True
                 }
             
             else:
@@ -505,7 +457,8 @@ class LLMService:
                     "content": response.choices[0].message.content,
                     "usage": {"total_tokens": total_tokens},
                     "model": response.model,
-                    "latency_ms": latency_ms
+                    "latency_ms": latency_ms,
+                    "used_rag": False
                 }
                 
         except Exception as e:
