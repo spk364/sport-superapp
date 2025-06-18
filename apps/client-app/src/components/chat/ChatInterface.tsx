@@ -52,11 +52,29 @@ export const ChatInterface: React.FC = () => {
     };
   };
 
+  // Helper function to format session duration
+  const formatSessionDuration = (minutes: number): string => {
+    if (minutes < 1) return 'Только что';
+    if (minutes < 60) return `${minutes} мин`;
+    
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    
+    if (hours < 24) {
+      return remainingMinutes > 0 ? `${hours}ч ${remainingMinutes}м` : `${hours}ч`;
+    }
+    
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+    return remainingHours > 0 ? `${days}д ${remainingHours}ч` : `${days}д`;
+  };
+
   const hasHistory = chatMessages.length > 1;
   const sessionInfo = chatSession ? {
     duration: Math.round((new Date().getTime() - new Date(chatSession.startTime).getTime()) / 1000 / 60), // minutes
     messageCount: chatSession.messageCount,
-    lastActivity: chatSession.lastActivity
+    lastActivity: chatSession.lastActivity,
+    isNewSession: (new Date().getTime() - new Date(chatSession.startTime).getTime()) < (5 * 60 * 1000) // less than 5 minutes old
   } : null;
 
   // Auto-scroll to bottom when new messages arrive
@@ -189,8 +207,11 @@ export const ChatInterface: React.FC = () => {
         {hasHistory && sessionInfo && (
           <div className="mt-2 px-3 py-1 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-xs text-blue-700">
-              📚 История чата загружена • {sessionInfo.messageCount} сообщений 
-              {sessionInfo.duration > 0 && ` • Сессия: ${sessionInfo.duration} мин`}
+              📚 История чата загружена • {sessionInfo.messageCount} сообщений
+              {sessionInfo.isNewSession 
+                ? ' • Новая сессия' 
+                : sessionInfo.duration > 0 && ` • Активная сессия: ${formatSessionDuration(sessionInfo.duration)}`
+              }
             </p>
           </div>
         )}

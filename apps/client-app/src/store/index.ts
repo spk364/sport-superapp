@@ -98,6 +98,7 @@ export interface ChatSession {
 const CHAT_HISTORY_KEY = 'ai_trainer_chat_history';
 const MAX_STORED_MESSAGES = 100;
 const CHAT_SESSION_KEY = 'ai_trainer_chat_session';
+const SESSION_INACTIVITY_TIMEOUT_HOURS = 4; // Reset session after 4 hours of inactivity
 
 const saveChatHistory = (userId: string, messages: ChatMessage[]) => {
   try {
@@ -463,18 +464,47 @@ export const useAppStore = create<AppState>((set, get) => ({
     
     // Load or create session
     let session = loadSession(userId);
+    const now = new Date();
+    
+    // Check if we need to reset the session due to inactivity
+    if (session) {
+      const lastActivity = new Date(session.lastActivity);
+      const hoursInactive = (now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60);
+      
+      // Reset session if inactive for more than the timeout period
+      if (hoursInactive > SESSION_INACTIVITY_TIMEOUT_HOURS) {
+        console.log(`Resetting chat session due to ${Math.round(hoursInactive * 10) / 10} hours of inactivity (timeout: ${SESSION_INACTIVITY_TIMEOUT_HOURS}h)`);
+        session = {
+          sessionId: `session-${Date.now()}`,
+          userId: userId,
+          startTime: now.toISOString(),
+          lastActivity: now.toISOString(),
+          messageCount: history.length
+        };
+        saveSession(session);
+      } else {
+        // Update last activity to current time
+        session = {
+          ...session,
+          lastActivity: now.toISOString()
+        };
+        saveSession(session);
+      }
+    }
+    
+    // Create new session if none exists
     if (!session) {
       session = {
         sessionId: `session-${Date.now()}`,
         userId: userId,
-        startTime: new Date().toISOString(),
-        lastActivity: new Date().toISOString(),
+        startTime: now.toISOString(),
+        lastActivity: now.toISOString(),
         messageCount: history.length
       };
       saveSession(session);
     }
     
-    console.log(`Chat initialized: ${history.length} messages loaded`);
+    console.log(`Chat initialized: ${history.length} messages loaded, session: ${session.sessionId}`);
     
     set({ 
       chatMessages: history,
@@ -537,7 +567,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         chatMessages: [...state.chatMessages, aiMessage]
       }));
       
-      // Update session
+      // Update session with current activity
       const updatedSession = {
         ...chatSession,
         messageCount: state.chatMessages.length + 2,
