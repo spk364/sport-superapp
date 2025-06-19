@@ -633,6 +633,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         userProfile: userProfile ? Object.keys(userProfile).filter(key => userProfile[key]).join(', ') : 'None'
       });
       
+      // Add loading message for long queries
+      const isHistoryQuery = message.toLowerCase().includes('когда') || message.toLowerCase().includes('спрашивал');
+      if (isHistoryQuery) {
+        console.log('🔍 History query detected - may take longer due to RAG processing');
+      }
+      
       // Call AI service with conversation context
       const response = await aiService.sendChatMessage({
         user_id: userId,
@@ -646,6 +652,13 @@ export const useAppStore = create<AppState>((set, get) => ({
           include_session_summary: true,
           max_context_tokens: 3000
         }
+      });
+      
+      console.log(`🔍 DEBUG: API call made with user_id: ${userId}, session_id: ${chatSession.sessionId}`);
+      console.log(`🔍 DEBUG: Response received:`, { 
+        response_length: response.response_text?.length || 0,
+        used_rag: response.used_rag || false,
+        timestamp: response.timestamp 
       });
       
       const aiMessage: ChatMessage = {

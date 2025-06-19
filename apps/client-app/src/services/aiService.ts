@@ -39,6 +39,7 @@ export interface ChatResponse {
   response_text: string;
   session_id: string;
   timestamp: string;
+  used_rag?: boolean;
   metadata?: {
     tokens_used: number;
     model: string;
@@ -82,20 +83,34 @@ export interface ProgressAnalysisResponse {
 
 class AIService {
   private async makeRequest<T>(endpoint: string, data: any): Promise<T> {
-    const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // Increased from default to 60 seconds
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Ошибка сервера' }));
-      throw new Error(error.detail || 'Ошибка при обращении к серверу');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Ошибка сервера' }));
+        throw new Error(error.detail || 'Ошибка при обращении к серверу');
+      }
+
+      return response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Время ожидания истекло. Попробуйте еще раз.');
+      }
+      throw error;
     }
-
-    return response.json();
   }
 
   private async makeGetRequest<T>(endpoint: string): Promise<T> {

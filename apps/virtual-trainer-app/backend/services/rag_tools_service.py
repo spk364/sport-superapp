@@ -103,50 +103,61 @@ class RAGToolsService:
         tool_name: str,
         tool_arguments: Dict[str, Any],
         user_id: str,
-        session_id: str = None
+        session_id: str = None,
+        current_session_context: List[Dict[str, str]] = None
     ) -> Dict[str, Any]:
         """
-        Execute a RAG tool and return results
+        Execute a RAG tool with given arguments
         
         Args:
             tool_name: Name of the tool to execute
             tool_arguments: Arguments for the tool
-            user_id: User ID for filtering results
-            session_id: Optional session ID for filtering
+            user_id: User ID for filtering
+            session_id: Session ID for context
+            current_session_context: Current session messages for immediate context
             
         Returns:
-            Tool execution results
+            Tool execution result
         """
         
         try:
             if tool_name == "search_conversation_history":
                 return await self._search_conversation_history(
                     user_id=user_id,
+                    query=tool_arguments.get("query", ""),
+                    max_results=tool_arguments.get("max_results", 3),
+                    time_window_days=tool_arguments.get("time_window_days", 30),
                     session_id=session_id,
-                    **tool_arguments
+                    current_session_context=current_session_context
                 )
             
             elif tool_name == "get_conversation_summary":
                 return await self._get_conversation_summary(
                     user_id=user_id,
-                    session_id=session_id,
-                    **tool_arguments
+                    days_back=tool_arguments.get("days_back", 7),
+                    include_topics=tool_arguments.get("include_topics", True),
+                    session_id=session_id
                 )
             
             elif tool_name == "find_related_discussions":
                 return await self._find_related_discussions(
                     user_id=user_id,
-                    session_id=session_id,
-                    **tool_arguments
+                    topic=tool_arguments.get("topic", ""),
+                    include_context=tool_arguments.get("include_context", True),
+                    session_id=session_id
                 )
             
             else:
-                raise LLMServiceError(f"Unknown tool: {tool_name}")
+                return {
+                    "error": f"Unknown tool: {tool_name}",
+                    "available_tools": list(self.available_tools.keys()),
+                    "tool_name": tool_name
+                }
                 
         except Exception as e:
-            logger.error(f"Error executing RAG tool {tool_name}: {e}")
+            logger.error(f"Error executing tool {tool_name}: {e}")
             return {
-                "error": f"Failed to execute tool: {str(e)}",
+                "error": f"Tool execution failed: {str(e)}",
                 "tool_name": tool_name
             }
     
@@ -156,78 +167,112 @@ class RAGToolsService:
         query: str,
         max_results: int = 3,
         time_window_days: int = 30,
-        session_id: str = None
+        session_id: str = None,
+        current_session_context: List[Dict[str, str]] = None
     ) -> Dict[str, Any]:
         """Search conversation history using semantic similarity"""
         
         logger.info(f"Searching conversation history for user {user_id}: {query}")
         
         # Ensure knowledge base is initialized
-        await knowledge_base._ensure_initialized()
-        
-        results = await knowledge_base.search_relevant_context(
-            query=query,
-            user_id=user_id,
-            max_results=max_results,
-            time_window_days=time_window_days
-        )
-        
-        if not results:
+        try:
+            await knowledge_base._ensure_initialized()
+        except Exception as e:
+            logger.warning(f"Knowledge base not available for search: {e}")
             return {
-                "found": False,
-                "message": f"No relevant conversations found for: {query}",
                 "results": [],
-                "suggestion": "It seems like this information was discussed before our conversation history system was activated. Could you please share this information again so I can help you better?"
+                "message": "Conversation history search is currently unavailable due to system initialization.",
+                "query": query,
+                "total_found": 0,
+                "search_performed": False
             }
         
-        # Check if we're finding only questions without answers
-        question_indicators = ["?", "какое", "сколько", "что", "где", "когда", "как", "почему"]
-        mostly_questions = True
+        # Check if knowledge base is actually initialized
+        if not knowledge_base._initialized:
+            logger.warning("Knowledge base not initialized for search")
+            return {
+                "results": [],
+                "message": "Conversation history search is currently unavailable. The system is still initializing.",
+                "query": query,
+                "total_found": 0,
+                "search_performed": False
+            }
         
-        for result in results:
-            content_lower = result['content'].lower()
-            is_question = any(indicator in content_lower for indicator in question_indicators)
-            if not is_question or len(result['content']) > 100:  # Longer responses are likely answers
-                mostly_questions = False
-                break
-        
-        # Format results for AI consumption
-        formatted_results = []
-        for result in results:
-            # Parse timestamp
-            timestamp_str = result['timestamp'].replace('Z', '').replace('T', ' ')
-            try:
-                timestamp = datetime.fromisoformat(timestamp_str)
-                time_ago = self._format_time_ago(timestamp)
-            except:
-                time_ago = "Recently"
+        try:
+            results = await knowledge_base.search_relevant_context(
+                query=query,
+                user_id=user_id,
+                max_results=max_results,
+                time_window_days=time_window_days
+            )
             
-            formatted_results.append({
-                "content": result['content'],
-                "relevance": f"{result['similarity']:.2f}",
-                "time_ago": time_ago,
-                "topics": result.get('topics', []),
-                "context": f"From conversation {time_ago} (relevance: {result['similarity']:.2f})"
-            })
-        
-        # Enhanced response based on what we found
-        if mostly_questions and len(results) > 0:
+            # Also search current session context if provided
+            current_session_results = []
+            if current_session_context:
+                query_lower = query.lower()
+                for i, message in enumerate(current_session_context):
+                    if message.get("role") == "user" or message.get("role") == "assistant":
+                        content = message.get("content", "")
+                        if content and isinstance(content, str):  # Ensure content exists and is string
+                            content_lower = content.lower()
+                            
+                            # Simple keyword matching for current session
+                            # This could be enhanced with semantic similarity later
+                            if any(keyword in content_lower for keyword in query_lower.split() if len(keyword) > 3):
+                                # Calculate relative time (how many messages ago)
+                                messages_ago = len(current_session_context) - i
+                                current_session_results.append({
+                                    "content": content,
+                                    "similarity": 0.8,  # High similarity for current session
+                                    "timestamp": "current_session",
+                                    "session_id": session_id or "current",
+                                    "topics": ["current_session"],
+                                    "importance_score": 1.5,  # Higher importance for current session
+                                    "messages_ago": messages_ago,
+                                    "source": "current_session"
+                                })
+            
+            # Combine results (current session first, then historical)
+            all_results = current_session_results + results
+            
+            # Limit to max_results
+            final_results = all_results[:max_results]
+            
+            # Format response
+            if final_results:
+                # Create explicit summary for the LLM about what was found
+                explicit_summary = self._create_explicit_result_summary(query, final_results)
+                
+                return {
+                    "results": final_results,
+                    "query": query,
+                    "total_found": len(final_results),
+                    "historical_results": len(results),
+                    "current_session_results": len(current_session_results),
+                    "search_performed": True,
+                    "message": f"Found {len(final_results)} relevant conversation snippets.",
+                    "explicit_summary": explicit_summary,  # New field for LLM guidance
+                    "interpretation_guide": self._create_interpretation_guide(query, final_results)
+                }
+            else:
+                return {
+                    "results": [],
+                    "query": query,
+                    "total_found": 0,
+                    "search_performed": True,
+                    "message": f"No relevant conversation history found for '{query}' in the last {time_window_days} days.",
+                    "explicit_summary": f"SEARCH RESULT: No conversations found matching '{query}'",
+                    "interpretation_guide": "Since no results were found, you should tell the user that you don't have information about this topic in your conversation history."
+                }
+                
+        except Exception as e:
+            logger.error(f"Error in conversation history search: {e}")
             return {
-                "found": True,
+                "results": [],
+                "message": f"Search encountered an error: {str(e)}",
                 "query": query,
-                "total_results": len(results),
-                "results": formatted_results,
-                "summary": f"Found {len(results)} relevant conversation snippets about '{query}'",
-                "analysis": "The search results mostly contain questions rather than answers, suggesting the original information was discussed before our conversation history system was activated.",
-                "recommendation": "Ask the user to provide the information again so you can give a proper response and remember it for future conversations."
-            }
-        else:
-            return {
-                "found": True,
-                "query": query,
-                "total_results": len(results),
-                "results": formatted_results,
-                "summary": f"Found {len(results)} relevant conversation snippets about '{query}'"
+                "total_found": 0,
+                "search_performed": False
             }
     
     async def _get_conversation_summary(
@@ -237,51 +282,70 @@ class RAGToolsService:
         include_topics: bool = True,
         session_id: str = None
     ) -> Dict[str, Any]:
-        """Get conversation summary and analytics"""
+        """Get a summary of recent conversation topics and patterns"""
         
-        logger.info(f"Getting conversation summary for user {user_id} ({days_back} days back)")
+        logger.info(f"Getting conversation summary for user {user_id}, {days_back} days back")
         
-        # Ensure knowledge base is initialized
-        await knowledge_base._ensure_initialized()
-        
-        summary = await knowledge_base.get_conversation_summary(
-            user_id=user_id,
-            session_id=session_id,
-            days_back=days_back
-        )
-        
-        if summary['total_messages'] == 0:
+        try:
+            await knowledge_base._ensure_initialized()
+        except Exception as e:
+            logger.warning(f"Knowledge base not available for summary: {e}")
             return {
-                "found": False,
-                "message": f"No conversations found in the last {days_back} days",
-                "summary": {}
+                "summary": "Conversation summary is currently unavailable due to system initialization.",
+                "message_count": 0,
+                "topics": {},
+                "insights": ["System is initializing conversation history features."],
+                "available": False
             }
         
-        # Format for AI consumption
-        formatted_summary = {
-            "total_messages": summary['total_messages'],
-            "time_range": summary['time_range'],
-            "main_topics": [
-                f"{topic['topic']} ({topic['count']} mentions)" 
-                for topic in summary['topics'][:3]
-            ]
-        }
+        if not knowledge_base._initialized:
+            logger.warning("Knowledge base not initialized for summary")
+            return {
+                "summary": "Conversation summary is currently unavailable. The system is still initializing.",
+                "message_count": 0,
+                "topics": {},
+                "insights": ["System is still setting up conversation history features."],
+                "available": False
+            }
         
-        if summary['key_points']:
-            formatted_summary["key_discussions"] = [
-                {
-                    "content": point['content'][:200] + "..." if len(point['content']) > 200 else point['content'],
-                    "importance": point['importance'],
-                    "when": self._format_time_ago(datetime.fromisoformat(point['timestamp']))
+        try:
+            summary_data = await knowledge_base.get_conversation_summary(
+                user_id=user_id,
+                session_id=session_id,
+                days_back=days_back
+            )
+            
+            if summary_data.get("message_count", 0) == 0:
+                return {
+                    "summary": f"No conversations found in the last {days_back} days.",
+                    "message_count": 0,
+                    "topics": {},
+                    "insights": ["This appears to be a new conversation or the user hasn't been active recently."],
+                    "available": True,
+                    "period_days": days_back
                 }
-                for point in summary['key_points'][-3:]  # Last 3 important points
-            ]
-        
-        return {
-            "found": True,
-            "summary": formatted_summary,
-            "insights": self._generate_conversation_insights(summary)
-        }
+            
+            # Generate insights from the summary
+            insights = self._generate_conversation_insights(summary_data)
+            
+            return {
+                "summary": summary_data.get("summary", "No summary available"),
+                "message_count": summary_data.get("message_count", 0),
+                "topics": summary_data.get("topics", {}),
+                "insights": insights,
+                "available": True,
+                "period_days": days_back
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting conversation summary: {e}")
+            return {
+                "summary": f"Error generating conversation summary: {str(e)}",
+                "message_count": 0,
+                "topics": {},
+                "insights": ["Summary generation encountered an error."],
+                "available": False
+            }
     
     async def _find_related_discussions(
         self,
@@ -292,49 +356,93 @@ class RAGToolsService:
     ) -> Dict[str, Any]:
         """Find all discussions related to a specific topic"""
         
-        logger.info(f"Finding discussions about '{topic}' for user {user_id}")
+        logger.info(f"Finding discussions related to '{topic}' for user {user_id}")
         
-        # Use broader search for topic-specific queries
-        results = await knowledge_base.search_relevant_context(
-            query=topic,
-            user_id=user_id,
-            max_results=5,
-            time_window_days=60,  # Longer time window for topic search
-            min_similarity=0.2    # Lower threshold for topic search
-        )
-        
-        if not results:
+        try:
+            await knowledge_base._ensure_initialized()
+        except Exception as e:
+            logger.warning(f"Knowledge base not available for topic search: {e}")
             return {
-                "found": False,
-                "message": f"No discussions found about '{topic}'",
-                "topic": topic
+                "topic": topic,
+                "discussions": [],
+                "total_found": 0,
+                "timeline": {},
+                "message": "Topic search is currently unavailable due to system initialization.",
+                "available": False
             }
         
-        # Group by sessions and time periods
-        discussions = []
-        for result in results:
-            timestamp_str = result['timestamp'].replace('Z', '').replace('T', ' ')
-            try:
-                timestamp = datetime.fromisoformat(timestamp_str)
-                time_ago = self._format_time_ago(timestamp)
-            except:
-                time_ago = "Recently"
-            
-            discussions.append({
-                "content": result['content'],
-                "when": time_ago,
-                "relevance": f"{result['similarity']:.2f}",
-                "session": result.get('session_id', 'Unknown')[-8:],  # Last 8 chars of session ID
-                "topics": result.get('topics', [])
-            })
+        if not knowledge_base._initialized:
+            logger.warning("Knowledge base not initialized for topic search")
+            return {
+                "topic": topic,
+                "discussions": [],
+                "total_found": 0,
+                "timeline": {},
+                "message": "Topic search is currently unavailable. The system is still initializing.",
+                "available": False
+            }
         
-        return {
-            "found": True,
-            "topic": topic,
-            "total_discussions": len(discussions),
-            "discussions": discussions,
-            "timeline": self._create_discussion_timeline(discussions)
-        }
+        try:
+            # Search for discussions related to the topic
+            results = await knowledge_base.search_relevant_context(
+                query=topic,
+                user_id=user_id,
+                max_results=10,  # Get more results for topic analysis
+                time_window_days=90,  # Look back further for topic discussions
+                min_similarity=0.2  # Lower threshold for topic matching
+            )
+            
+            if not results:
+                return {
+                    "topic": topic,
+                    "discussions": [],
+                    "total_found": 0,
+                    "timeline": {},
+                    "message": f"No discussions found related to '{topic}'.",
+                    "available": True
+                }
+            
+            # Group discussions by time periods
+            timeline = self._create_discussion_timeline(results)
+            
+            # Format discussions
+            formatted_discussions = []
+            for result in results:
+                try:
+                    timestamp = datetime.fromisoformat(result['timestamp'])
+                    time_ago = self._format_time_ago(timestamp)
+                except:
+                    time_ago = "Recently"
+                
+                formatted_discussions.append({
+                    "content": result['content'],
+                    "timestamp": result['timestamp'],
+                    "time_ago": time_ago,
+                    "relevance": f"{result['similarity']:.2f}",
+                    "topics": result.get('topics', []),
+                    "session_id": result.get('session_id', 'unknown'),
+                    "importance": result.get('importance_score', 1.0)
+                })
+            
+            return {
+                "topic": topic,
+                "discussions": formatted_discussions,
+                "total_found": len(results),
+                "timeline": timeline,
+                "message": f"Found {len(results)} discussions related to '{topic}'.",
+                "available": True
+            }
+            
+        except Exception as e:
+            logger.error(f"Error finding related discussions: {e}")
+            return {
+                "topic": topic,
+                "discussions": [],
+                "total_found": 0,
+                "timeline": {},
+                "message": f"Error searching for discussions: {str(e)}",
+                "available": False
+            }
     
     def _format_time_ago(self, timestamp: datetime) -> str:
         """Format timestamp as human-readable time ago"""
@@ -378,24 +486,108 @@ class RAGToolsService:
     
     def _create_discussion_timeline(self, discussions: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Create a timeline view of discussions"""
-        if not discussions:
-            return {}
         
-        # Group by time periods
-        recent = [d for d in discussions if "hour" in d['when'] or "minute" in d['when'] or "Just now" in d['when']]
-        today = [d for d in discussions if "hour" in d['when']]
-        this_week = [d for d in discussions if "day" in d['when'] and not "days" in d['when']]
-        older = [d for d in discussions if "days" in d['when']]
+        timeline = {
+            "last_24_hours": [],
+            "last_week": [],
+            "last_month": [],
+            "older": []
+        }
         
-        timeline = {}
-        if recent:
-            timeline["recent"] = f"{len(recent)} recent mentions"
-        if this_week:
-            timeline["this_week"] = f"{len(this_week)} mentions this week"
-        if older:
-            timeline["older"] = f"{len(older)} older mentions"
+        now = datetime.now()
+        
+        for discussion in discussions:
+            try:
+                # Parse timestamp
+                timestamp_str = discussion.get("timestamp", "")
+                if timestamp_str == "current_session":
+                    timeline["last_24_hours"].append(discussion)
+                    continue
+                    
+                timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+                age = now - timestamp
+                
+                if age.days == 0:
+                    timeline["last_24_hours"].append(discussion)
+                elif age.days <= 7:
+                    timeline["last_week"].append(discussion) 
+                elif age.days <= 30:
+                    timeline["last_month"].append(discussion)
+                else:
+                    timeline["older"].append(discussion)
+                    
+            except Exception:
+                # If timestamp parsing fails, put in older
+                timeline["older"].append(discussion)
         
         return timeline
+
+    def _create_explicit_result_summary(self, query: str, results: List[Dict[str, Any]]) -> str:
+        """Create an explicit summary of search results for LLM interpretation"""
+        
+        if not results:
+            return f"SEARCH RESULT: No conversations found matching '{query}'"
+        
+        # Analyze what types of content were found
+        user_questions = []
+        ai_responses = []
+        general_content = []
+        
+        for result in results:
+            content = result.get('content', '')
+            
+            # Check if this looks like a user question
+            if content.endswith('?') or any(word in content.lower() for word in ['когда я', 'что ты', 'как я', 'помнишь']):
+                user_questions.append(content[:100])
+            # Check if this looks like an AI response with detailed advice
+            elif any(phrase in content.lower() for phrase in ['рекомендую', 'советую', 'важно', 'стремись', 'помни']):
+                ai_responses.append(content[:100])
+            else:
+                general_content.append(content[:100])
+        
+        summary_parts = []
+        
+        if user_questions:
+            summary_parts.append(f"FOUND {len(user_questions)} USER QUESTIONS about this topic")
+        
+        if ai_responses:
+            summary_parts.append(f"FOUND {len(ai_responses)} AI RESPONSES with detailed advice")
+        
+        if general_content:
+            summary_parts.append(f"FOUND {len(general_content)} RELATED CONVERSATIONS")
+        
+        result_summary = " and ".join(summary_parts)
+        
+        return f"SEARCH RESULT for '{query}': {result_summary}. Total results: {len(results)}"
+
+    def _create_interpretation_guide(self, query: str, results: List[Dict[str, Any]]) -> str:
+        """Create specific guidance for how the LLM should interpret these results"""
+        
+        if not results:
+            return "Since no results were found, you should tell the user that you don't have information about this topic in your conversation history."
+        
+        # Check if query is asking about timing
+        if any(word in query.lower() for word in ['когда', 'when', 'время']):
+            guide = "The user is asking WHEN something happened. Look through the results for timestamps and provide specific timing information. "
+        # Check if query is asking about content
+        elif any(word in query.lower() for word in ['что', 'как', 'what', 'how']):
+            guide = "The user is asking WHAT was discussed. Look through the results for the actual content and provide specific details from the conversations. "
+        else:
+            guide = "The user is asking about past conversations. Look through the results and provide specific information from what was found. "
+
+        # Analyze content types in results
+        has_detailed_responses = any(
+            len(r.get('content', '')) > 100 and 
+            any(phrase in r.get('content', '').lower() for phrase in ['рекомендую', 'советую', 'важно', 'стремись'])
+            for r in results
+        )
+        
+        if has_detailed_responses:
+            guide += "IMPORTANT: The results contain detailed AI responses with advice. Reference this specific content instead of saying you can't find information."
+        
+        guide += f" You found {len(results)} relevant results - USE THEM to answer the user's question with specific details."
+        
+        return guide
 
 
 # Global instance
