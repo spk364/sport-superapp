@@ -1,0 +1,32 @@
+{
+  "chat_history": [],
+  "context": {
+    "goals": [
+      "Набор мышечной массы"
+    ],
+    "fitness_level": "Продвинутый (тренируюсь более года)",
+    "equipment": [
+      "Собственный вес",
+      "Штанга",
+      "Тренажерный зал"
+    ],
+    "limitations": [
+      "Нет ограничений"
+    ],
+    "nutrition_goal": "Похудение (дефицит калорий)",
+    "food_preferences": [
+      "Обычное питание"
+    ],
+    "allergies": [
+      "Нет аллергий"
+    ],
+    "daily_calories": 0,
+    "height": 191,
+    "weight": 97,
+    "age": 30,
+    "gender": "Мужской"
+  },
+  "current_program": null,
+  "questionnaire_state": null,
+  "created_at": "2025-06-17T15:50:02.221354"
+} 

@@ -16,12 +16,44 @@ router = APIRouter()
 
 
 # Pydantic модели для запросов и ответов
+class UserProfile(BaseModel):
+    """Профиль пользователя для контекста чата"""
+    age: Optional[int] = Field(default=None, description="Возраст")
+    gender: Optional[str] = Field(default=None, description="Пол")
+    height: Optional[int] = Field(default=None, description="Рост в см")
+    weight: Optional[int] = Field(default=None, description="Вес в кг")
+    goals: Optional[List[str]] = Field(default=None, description="Цели тренировок")
+    fitness_level: Optional[str] = Field(default=None, description="Уровень подготовки")
+    equipment: Optional[List[str]] = Field(default=None, description="Доступное оборудование")
+    limitations: Optional[List[str]] = Field(default=None, description="Ограничения")
+    nutrition_goal: Optional[str] = Field(default=None, description="Цель питания")
+    food_preferences: Optional[List[str]] = Field(default=None, description="Пищевые предпочтения")
+    allergies: Optional[List[str]] = Field(default=None, description="Аллергии")
+
+
+class ConversationMessage(BaseModel):
+    """Сообщение в истории разговора"""
+    role: str = Field(..., description="Роль отправителя: user, assistant, system")
+    content: str = Field(..., description="Содержимое сообщения")
+    timestamp: Optional[str] = Field(default=None, description="Временная метка")
+
+
+class ContextSettings(BaseModel):
+    """Настройки контекста для чата"""
+    include_recent_messages: int = Field(default=8, description="Количество последних сообщений")
+    include_session_summary: bool = Field(default=True, description="Включать ли сводку сессии")
+    max_context_tokens: int = Field(default=3000, description="Максимальное количество токенов контекста")
+
+
 class ChatRequest(BaseModel):
     """Запрос для чата с виртуальным тренером"""
     user_id: str = Field(..., description="ID пользователя")
     session_id: str = Field(..., description="ID сессии чата")
     message: str = Field(..., description="Сообщение пользователя")
+    conversation_history: Optional[List[ConversationMessage]] = Field(default=None, description="История разговора")
     attachments: List[str] = Field(default=[], description="Список URL файлов")
+    user_profile: Optional[UserProfile] = Field(default=None, description="Профиль пользователя для контекста")
+    context_settings: Optional[ContextSettings] = Field(default=None, description="Настройки контекста")
 
 
 class ChatResponse(BaseModel):
@@ -29,6 +61,7 @@ class ChatResponse(BaseModel):
     response_text: str = Field(..., description="Ответ виртуального тренера")
     session_id: str = Field(..., description="ID сессии")
     timestamp: datetime = Field(..., description="Время ответа")
+    used_rag: Optional[bool] = Field(default=False, description="Использовались ли RAG инструменты")
     metadata: Optional[Dict[str, Any]] = Field(default=None, description="Метаданные")
 
 
@@ -94,23 +127,70 @@ async def send_chat_message(request: ChatRequest):
     
     Эндпоинт для реализации чат-бота согласно ТЗ.
     Обрабатывает текстовые сообщения и возвращает ответ виртуального тренера.
+    Поддерживает RAG для доступа к истории разговоров.
     """
     try:
         logger.info(f"Получен чат запрос от пользователя {request.user_id}")
+        logger.info(f"Профиль пользователя: {request.user_profile}")
+        logger.info(f"Получена история разговора: {len(request.conversation_history or [])} сообщений")
         
-        # TODO: Получить историю чата и контекст пользователя из БД
-        # Пока используем mock данные
-        chat_history = []  # История последних сообщений
-        user_context = {    # Контекст пользователя
-            "goals": ["снижение веса"],
-            "fitness_level": "начальный"
-        }
+        # Используем историю разговора из frontend или получаем из БД
+        chat_history = []
+        if request.conversation_history:
+            # Конвертируем историю в формат, ожидаемый LLM сервисом
+            chat_history = [
+                {
+                    "role": msg.role,
+                    "content": msg.content,
+                    "timestamp": msg.timestamp
+                }
+                for msg in request.conversation_history
+            ]
+            logger.info(f"Используем историю из frontend: {len(chat_history)} сообщений")
+        else:
+            # Fallback - получить историю из БД (если реализовано)
+            logger.info("История из frontend не предоставлена, используем пустую историю")
         
-        # Вызов LLM сервиса
+        # Создаем контекст пользователя из переданного профиля
+        user_context = {}
+        if request.user_profile:
+            # Основные физические характеристики
+            if request.user_profile.age:
+                user_context["age"] = request.user_profile.age
+            if request.user_profile.gender:
+                user_context["gender"] = request.user_profile.gender
+            if request.user_profile.height:
+                user_context["height"] = f"{request.user_profile.height} см"
+            if request.user_profile.weight:
+                user_context["weight"] = f"{request.user_profile.weight} кг"
+            
+            # Фитнес-цели и уровень
+            if request.user_profile.goals:
+                user_context["goals"] = request.user_profile.goals
+            if request.user_profile.fitness_level:
+                user_context["fitness_level"] = request.user_profile.fitness_level
+            
+            # Оборудование и ограничения
+            if request.user_profile.equipment:
+                user_context["equipment"] = request.user_profile.equipment
+            if request.user_profile.limitations:
+                user_context["limitations"] = request.user_profile.limitations
+            
+            # Питание
+            if request.user_profile.nutrition_goal:
+                user_context["nutrition_goal"] = request.user_profile.nutrition_goal
+            if request.user_profile.food_preferences:
+                user_context["food_preferences"] = request.user_profile.food_preferences
+            if request.user_profile.allergies:
+                user_context["allergies"] = request.user_profile.allergies
+        
+        # Вызов LLM сервиса с параметрами для RAG
         result = await llm_service.chat_with_virtual_trainer(
             user_message=request.message,
             chat_history=chat_history,
-            user_context=user_context
+            user_context=user_context,
+            user_id=request.user_id,
+            session_id=request.session_id
         )
         
         # TODO: Сохранить сообщения в БД
@@ -119,6 +199,7 @@ async def send_chat_message(request: ChatRequest):
             response_text=result["response"],
             session_id=request.session_id,
             timestamp=datetime.now(),
+            used_rag=result.get("used_rag", False),
             metadata=result.get("metadata")
         )
         
@@ -161,33 +242,24 @@ async def create_workout_program(request: ProgramCreateRequest):
         }
         
         # Генерация программы
-        result = await llm_service.generate_workout_program(client_data)
-        
-        # TODO: Сохранить программу в БД
-        program_id = "generated-uuid"  # Заменить на реальный UUID из БД
+        program = await llm_service.generate_workout_program(client_data)
         
         return ProgramResponse(
-            program_id=program_id,
-            program_structure=result["program"],
-            generated_at=datetime.now(),
-            metadata=result.get("metadata")
+            program_id=f"program_{request.user_id}_{int(datetime.now().timestamp())}",
+            program_structure=program,
+            generated_at=datetime.now()
         )
         
-    except ValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
     except LLMServiceError as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(e)
         )
     except Exception as e:
-        logger.error(f"Ошибка создания программы: {e}")
+        logger.error(f"Ошибка при создании программы: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Ошибка создания программы тренировок"
+            detail="Не удалось создать программу тренировок"
         )
 
 
@@ -197,103 +269,67 @@ async def adjust_workout_program(request: ProgramAdjustRequest):
     Корректировка тренировочной программы
     
     Адаптирует существующую программу на основе обратной связи
-    и данных о прогрессе.
+    и данных о прогрессе пользователя.
     """
     try:
         logger.info(f"Запрос на корректировку программы {request.program_id}")
         
         # TODO: Получить текущую программу из БД
-        current_program = {
-            "weeks": [
-                {
-                    "week_number": 1,
-                    "days": [
-                        {
-                            "day_of_week": "понедельник",
-                            "workout_type": "силовая",
-                            "exercises": [
-                                {"name": "Приседания", "sets": 3, "reps": 12}
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }
+        current_program = {"placeholder": "current_program_data"}
         
         # Корректировка программы
-        result = await llm_service.adjust_workout_program(
+        adjusted_program = await llm_service.adjust_workout_program(
             current_program=current_program,
             feedback=request.feedback,
             progress_data=request.progress_data
         )
         
-        # TODO: Обновить программу в БД
-        
         return ProgramResponse(
-            program_id=request.program_id,
-            program_structure=result["program"],
-            generated_at=datetime.now(),
-            metadata=result.get("metadata")
+            program_id=f"{request.program_id}_adjusted_{int(datetime.now().timestamp())}",
+            program_structure=adjusted_program,
+            generated_at=datetime.now()
         )
         
-    except ValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
     except LLMServiceError as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(e)
         )
     except Exception as e:
-        logger.error(f"Ошибка корректировки программы: {e}")
+        logger.error(f"Ошибка при корректировке программы: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Ошибка корректировки программы"
+            detail="Не удалось скорректировать программу"
         )
 
 
 @router.post("/progress/analyze", response_model=ProgressAnalyzeResponse)
 async def analyze_progress(request: ProgressAnalyzeRequest):
     """
-    Анализ прогресса клиента
+    Анализ прогресса пользователя
     
-    Анализирует данные тренировок и физических показателей
-    за указанный период и предоставляет рекомендации.
+    Анализирует данные тренировок и показатели за указанный период,
+    выявляет тенденции и дает рекомендации.
     """
     try:
-        logger.info(f"Запрос на анализ прогресса пользователя {request.user_id}")
+        logger.info(f"Анализ прогресса для пользователя {request.user_id}")
         
-        # TODO: Получить данные клиента и период из БД
-        client_data = {
-            "name": "Клиент",
-            "goals": ["снижение веса"],
-            "current_metrics": {"weight": 80, "body_fat": 20}
-        }
-        
+        # Подготовка данных
+        client_data = {"user_id": request.user_id}
         period_data = {
-            "workouts_completed": 12,
-            "average_duration": 45,
-            "weight_change": -3,
-            "strength_improvements": {
-                "bench_press": 10,
-                "squat": 15
-            }
+            "date_from": request.date_from,
+            "date_to": request.date_to
         }
         
         # Анализ прогресса
-        result = await llm_service.analyze_progress(
+        analysis = await llm_service.analyze_progress(
             client_data=client_data,
             period_data=period_data
         )
         
-        # TODO: Сохранить отчет в БД
-        
         return ProgressAnalyzeResponse(
-            report=result["analysis"],
-            generated_at=datetime.now(),
-            metadata=result.get("metadata")
+            report=analysis,
+            generated_at=datetime.now()
         )
         
     except LLMServiceError as e:
@@ -302,10 +338,10 @@ async def analyze_progress(request: ProgressAnalyzeRequest):
             detail=str(e)
         )
     except Exception as e:
-        logger.error(f"Ошибка анализа прогресса: {e}")
+        logger.error(f"Ошибка при анализе прогресса: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Ошибка анализа прогресса"
+            detail="Не удалось проанализировать прогресс"
         )
 
 
@@ -314,26 +350,22 @@ async def create_notification(request: NotificationCreateRequest):
     """
     Создание персонализированного уведомления
     
-    Генерирует персонализированные уведомления и напоминания
-    с учетом контекста пользователя.
+    Генерирует уведомление на основе типа и контекста пользователя.
     """
     try:
-        logger.info(f"Запрос на создание уведомления для пользователя {request.user_id}")
+        logger.info(f"Создание уведомления для пользователя {request.user_id}")
         
         # Генерация уведомления
-        result = await llm_service.generate_notification(
+        notification = await llm_service.generate_notification(
             notification_type=request.type,
             user_context=request.context
         )
         
-        # TODO: Сохранить уведомление в БД и запланировать отправку
-        notification_id = "notification-uuid"
-        
         return NotificationResponse(
-            notification_id=notification_id,
-            message=result["message"],
-            scheduled_at=datetime.now(),
-            metadata=result.get("metadata")
+            notification_id=f"notif_{request.user_id}_{int(datetime.now().timestamp())}",
+            message=notification["message"],
+            scheduled_at=notification.get("scheduled_at"),
+            metadata=notification.get("metadata")
         )
         
     except LLMServiceError as e:
@@ -342,10 +374,10 @@ async def create_notification(request: NotificationCreateRequest):
             detail=str(e)
         )
     except Exception as e:
-        logger.error(f"Ошибка создания уведомления: {e}")
+        logger.error(f"Ошибка при создании уведомления: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Ошибка создания уведомления"
+            detail="Не удалось создать уведомление"
         )
 
 
@@ -353,9 +385,18 @@ async def create_notification(request: NotificationCreateRequest):
 async def llm_service_status():
     """
     Проверка статуса LLM сервиса
+    
+    Возвращает информацию о доступности и настройках сервиса.
     """
-    return {
-        "status": "operational",
-        "model": llm_service.model,
-        "timestamp": datetime.now()
-    } 
+    try:
+        return {
+            "status": "operational",
+            "model": llm_service.model,
+            "timestamp": datetime.now()
+        }
+    except Exception as e:
+        logger.error(f"Ошибка проверки статуса LLM: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="LLM сервис недоступен"
+        ) 

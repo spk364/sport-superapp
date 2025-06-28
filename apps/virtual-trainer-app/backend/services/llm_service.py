@@ -13,6 +13,9 @@ from openai import AsyncOpenAI
 
 from backend.core.config import settings
 from backend.core.exceptions import LLMServiceError, ValidationError
+from backend.services.rag_tools_service import rag_tools
+from backend.services.knowledge_base_service import knowledge_base
+from backend.services.llm_service_rag_methods import LLMServiceRAGMethods
 from backend.database.models import LLMRequestType
 
 
@@ -89,7 +92,9 @@ class LLMService:
         self,
         user_message: str,
         chat_history: List[Dict[str, str]] = None,
-        user_context: Optional[Dict[str, Any]] = None
+        user_context: Optional[Dict[str, Any]] = None,
+        user_id: str = None,
+        session_id: str = None
     ) -> Dict[str, Any]:
         """
         Чат с виртуальным тренером
@@ -106,15 +111,65 @@ class LLMService:
         if not user_message.strip():
             raise ValidationError("Сообщение не может быть пустым")
         
-        # Формирование контекста
+        # Формирование детального контекста пользователя
         context_info = ""
         if user_context:
+            # Физические характеристики
+            physical_info = []
+            if user_context.get("age"):
+                physical_info.append(f"возраст {user_context['age']} лет")
+            if user_context.get("gender"):
+                physical_info.append(f"пол {user_context['gender']}")
+            if user_context.get("height"):
+                physical_info.append(f"рост {user_context['height']}")
+            if user_context.get("weight"):
+                physical_info.append(f"вес {user_context['weight']}")
+            if physical_info:
+                context_info += f"Физические данные: {', '.join(physical_info)}. "
+            
+            # Фитнес-информация
             if user_context.get("goals"):
-                context_info += f"Цели клиента: {', '.join(user_context['goals'])}. "
+                if isinstance(user_context['goals'], list):
+                    goals_str = ', '.join(user_context['goals'])
+                else:
+                    goals_str = user_context['goals']
+                context_info += f"Цели тренировок: {goals_str}. "
+            
             if user_context.get("fitness_level"):
                 context_info += f"Уровень подготовки: {user_context['fitness_level']}. "
+            
+            if user_context.get("equipment"):
+                if isinstance(user_context['equipment'], list):
+                    equipment_str = ', '.join(user_context['equipment'])
+                else:
+                    equipment_str = user_context['equipment']
+                context_info += f"Доступное оборудование: {equipment_str}. "
+            
             if user_context.get("limitations"):
-                context_info += f"Ограничения: {', '.join(user_context['limitations'])}. "
+                if isinstance(user_context['limitations'], list):
+                    limitations_str = ', '.join(user_context['limitations'])
+                else:
+                    limitations_str = user_context['limitations']
+                context_info += f"Ограничения: {limitations_str}. "
+            
+            # Питание
+            nutrition_info = []
+            if user_context.get("nutrition_goal"):
+                nutrition_info.append(f"цель питания: {user_context['nutrition_goal']}")
+            if user_context.get("food_preferences"):
+                if isinstance(user_context['food_preferences'], list):
+                    prefs_str = ', '.join(user_context['food_preferences'])
+                else:
+                    prefs_str = user_context['food_preferences']
+                nutrition_info.append(f"предпочтения: {prefs_str}")
+            if user_context.get("allergies"):
+                if isinstance(user_context['allergies'], list):
+                    allergies_str = ', '.join(user_context['allergies'])
+                else:
+                    allergies_str = user_context['allergies']
+                nutrition_info.append(f"аллергии: {allergies_str}")
+            if nutrition_info:
+                context_info += f"Питание: {', '.join(nutrition_info)}. "
         
         # Формирование сообщений
         messages = [
@@ -139,20 +194,293 @@ class LLMService:
             "content": user_message
         })
         
-        # Выполнение запроса
-        result = await self._make_openai_request(
-            messages=messages,
-            request_type=LLMRequestType.CHAT
-        )
-        
+        # Store conversation in knowledge base
+        if user_id and session_id:
+            try:
+                # Store user message
+                await knowledge_base.store_conversation_message(
+                    user_id=user_id,
+                    session_id=session_id,
+                    role="user",
+                    content=user_message,
+                    importance_score=1.0
+                )
+            except Exception as e:
+                logger.warning(f"Failed to store user message in knowledge base: {e}")
+
+        # Universal approach: Always provide RAG tools, let LLM decide when to use them
+        if user_id and session_id:
+            logger.info("Using RAG-enhanced chat with LLM decision-making")
+            
+            # Always use RAG tools, let AI decide when to call them
+            final_result = await self._chat_with_rag_tools(
+                messages=messages,
+                user_id=user_id,
+                session_id=session_id,
+                user_message=user_message
+            )
+            
+            if not final_result:
+                # Fallback to normal chat if RAG fails
+                logger.warning("RAG-enhanced chat failed, falling back to normal chat")
+                final_result = await self._make_openai_request(
+                    messages=messages,
+                    request_type=LLMRequestType.CHAT
+                )
+                final_result["used_rag"] = False
+        else:
+            # Normal chat without RAG (no user context)
+            logger.info("Using normal chat (no user context)")
+            final_result = await self._make_openai_request(
+                messages=messages,
+                request_type=LLMRequestType.CHAT
+            )
+            final_result["used_rag"] = False
+
+        # Store AI response in knowledge base
+        if user_id and session_id:
+            try:
+                await knowledge_base.store_conversation_message(
+                    user_id=user_id,
+                    session_id=session_id,
+                    role="assistant",
+                    content=final_result["content"],
+                    importance_score=1.2 if final_result.get("used_rag", False) else 1.0
+                )
+            except Exception as e:
+                logger.warning(f"Failed to store AI message in knowledge base: {e}")
+
         return {
-            "response": result["content"],
+            "response": final_result["content"],
+            "used_rag": final_result.get("used_rag", False),
             "metadata": {
-                "tokens_used": result["usage"]["total_tokens"],
-                "model": result["model"],
-                "latency_ms": result["latency_ms"]
+                "tokens_used": final_result["usage"]["total_tokens"],
+                "model": final_result["model"],
+                "latency_ms": final_result["latency_ms"]
             }
         }
+    
+    async def _should_use_rag_tools(self, user_message: str, chat_history: List[Dict[str, str]] = None) -> bool:
+        """
+        DEPRECATED: This function is no longer used.
+        RAG tools are now always available and the LLM decides when to use them.
+        """
+        # This function is kept for backward compatibility but not used
+        return True
+    
+    async def _chat_with_rag_tools(
+        self,
+        messages: List[Dict[str, str]],
+        user_id: str,
+        session_id: str,
+        user_message: str
+    ) -> Dict[str, Any]:
+        """
+        Enhanced chat that provides RAG tools for AI to use when needed
+        
+        Args:
+            messages: Chat messages to send
+            user_id: User ID for RAG filtering
+            session_id: Session ID for RAG filtering  
+            user_message: Current user message
+            
+        Returns:
+            OpenAI response with RAG enhancement tracking
+        """
+        
+        try:
+            # Add RAG tools to the request
+            tools = rag_tools.get_tool_definitions()
+            
+            # Enhanced system message for intelligent RAG usage
+            rag_system_message = """
+            
+            🧠 ИНСТРУМЕНТЫ ПАМЯТИ:
+            У тебя есть доступ к полной истории разговоров с этим пользователем. Используй эти инструменты разумно:
+            
+            📋 search_conversation_history - найти конкретную информацию из прошлых бесед
+            📊 get_conversation_summary - получить обзор недавних тем и обсуждений  
+            🔍 find_related_discussions - найти все связанные обсуждения по теме
+            
+            КОГДА ИСПОЛЬЗОВАТЬ:
+            ✅ Пользователь ссылается на прошлые разговоры ("помнишь", "мы обсуждали", "ты говорил")
+            ✅ Спрашивает о своей программе, прогрессе, целях ("моя программа", "как дела с...")
+            ✅ Вопросы требуют персонального контекста ("когда я...", "что я...")
+            ✅ Нужна информация о предыдущих рекомендациях или планах
+            ✅ Пользователь спрашивает о времени/датах событий ("когда", "вчера", "на прошлой неделе")
+            
+            КОГДА НЕ ИСПОЛЬЗОВАТЬ:
+            ❌ Общие вопросы о фитнесе/питании без личного контекста
+            ❌ Новые темы, не связанные с историей
+            ❌ Простые приветствия или благодарности
+            ❌ Вопросы, на которые можешь ответить на основе текущего контекста
+            
+            🎯 КРИТИЧЕСКИ ВАЖНО - КАК ИНТЕРПРЕТИРОВАТЬ РЕЗУЛЬТАТЫ ИНСТРУМЕНТОВ:
+            
+            Когда ты получаешь результаты от инструментов памяти, ВСЕГДА анализируй их содержимое:
+            
+            ✅ Если инструмент возвращает результаты с полем "results" и там есть записи разговоров - ЭТО ОЗНАЧАЕТ, ЧТО ИНФОРМАЦИЯ НАЙДЕНА!
+            ✅ Даже если найдено много результатов, внимательно ищи среди них нужную информацию
+            ✅ Анализируй содержимое поля "content" в каждом результате
+            ✅ Обращай внимание на временные метки (timestamp) для понимания хронологии
+            ✅ Если в результатах есть релевантная информация - используй её в ответе, не говори что не нашел!
+            
+            ❌ НЕ ГОВОРИ "не нашел информации" если инструмент вернул результаты!
+            ❌ НЕ ИГНОРИРУЙ содержимое найденных разговоров!
+            ❌ НЕ давай общие ответы если есть конкретная информация из истории!
+            
+            ПРИМЕР: Если пользователь спрашивает "Когда я спрашивал про воду?" и инструмент возвращает результаты с разговорами о воде - ответь конкретно основываясь на найденной информации, укажи дату/время и перескажи что обсуждалось.
+            
+            Принимай решение самостоятельно - если считаешь что информация из истории поможет дать лучший ответ, используй инструменты.
+            """
+            
+            # Modify the first system message to include RAG instructions
+            if messages and messages[0]["role"] == "system":
+                messages[0]["content"] = messages[0]["content"] + rag_system_message
+            
+            # Make request with tools
+            response = await self._make_openai_request_with_tools(
+                messages=messages,
+                tools=tools,
+                user_id=user_id,
+                session_id=session_id
+            )
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error in RAG-enhanced chat: {e}")
+            return None
+    
+    async def _make_openai_request_with_tools(
+        self,
+        messages: List[Dict[str, str]],
+        tools: List[Dict[str, Any]],
+        user_id: str,
+        session_id: str
+    ) -> Dict[str, Any]:
+        """
+        Make OpenAI request with function calling tools
+        
+        Args:
+            messages: Chat messages
+            tools: Available tools for function calling
+            user_id: User ID for tool execution
+            session_id: Session ID for tool execution
+            
+        Returns:
+            Final response after tool execution
+        """
+        
+        start_time = time.time()
+        total_tokens = 0
+        
+        try:
+            # Initial request with tools
+            response = await self.client.chat.completions.create(
+                model=settings.OPENAI_MODEL,
+                messages=messages,
+                tools=tools,
+                tool_choice="auto",
+                temperature=settings.OPENAI_TEMPERATURE,
+                max_tokens=settings.OPENAI_MAX_TOKENS,
+                timeout=settings.OPENAI_TIMEOUT
+            )
+            
+            total_tokens += response.usage.total_tokens
+            
+            # Check if AI wants to use tools
+            if response.choices[0].message.tool_calls:
+                logger.info(f"AI requested {len(response.choices[0].message.tool_calls)} tool calls")
+                
+                # Add AI message with tool calls to conversation
+                messages.append({
+                    "role": "assistant",
+                    "content": response.choices[0].message.content,
+                    "tool_calls": [
+                        {
+                            "id": tool_call.id,
+                            "type": tool_call.type,
+                            "function": {
+                                "name": tool_call.function.name,
+                                "arguments": tool_call.function.arguments
+                            }
+                        }
+                        for tool_call in response.choices[0].message.tool_calls
+                    ]
+                })
+                
+                # Execute each tool call
+                for tool_call in response.choices[0].message.tool_calls:
+                    try:
+                        function_name = tool_call.function.name
+                        function_args = json.loads(tool_call.function.arguments)
+                        
+                        logger.info(f"Executing tool: {function_name} with args: {function_args}")
+                        
+                        # Execute the tool
+                        tool_result = await rag_tools.execute_tool(
+                            tool_name=function_name,
+                            tool_arguments=function_args,
+                            user_id=user_id,
+                            session_id=session_id,
+                            current_session_context=messages  # Pass current conversation context
+                        )
+                        
+                        # Add tool result to conversation
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": json.dumps(tool_result, ensure_ascii=False)
+                        })
+                        
+                    except Exception as e:
+                        logger.error(f"Error executing tool {tool_call.function.name}: {e}")
+                        # Add error message
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": json.dumps({"error": str(e)}, ensure_ascii=False)
+                        })
+                
+                # Get final response after tool execution
+                final_response = await self.client.chat.completions.create(
+                    model=settings.OPENAI_MODEL,
+                    messages=messages,
+                    temperature=settings.OPENAI_TEMPERATURE,
+                    max_tokens=settings.OPENAI_MAX_TOKENS,
+                    timeout=settings.OPENAI_TIMEOUT
+                )
+                
+                total_tokens += final_response.usage.total_tokens
+                
+                end_time = time.time()
+                latency_ms = int((end_time - start_time) * 1000)
+                
+                return {
+                    "content": final_response.choices[0].message.content,
+                    "usage": {"total_tokens": total_tokens},
+                    "model": final_response.model,
+                    "latency_ms": latency_ms,
+                    "used_rag": True
+                }
+            
+            else:
+                # No tools used, return direct response
+                end_time = time.time()
+                latency_ms = int((end_time - start_time) * 1000)
+                
+                return {
+                    "content": response.choices[0].message.content,
+                    "usage": {"total_tokens": total_tokens},
+                    "model": response.model,
+                    "latency_ms": latency_ms,
+                    "used_rag": False
+                }
+                
+        except Exception as e:
+            logger.error(f"Error in OpenAI request with tools: {e}")
+            raise LLMServiceError(f"Tool-enhanced chat failed: {str(e)}")
     
     def _create_fallback_workout_program(self, client_data: Dict[str, Any]) -> Dict[str, Any]:
         """Create a basic fallback workout program if LLM fails"""

@@ -1,18 +1,50 @@
 export interface User {
   id: string;
-  firstName: string;
-  lastName: string;
-  telegramId: string;
+  email: string;
+  name: string;
+  role: 'client' | 'trainer' | 'admin';
+  is_active: boolean;
   phone?: string;
-  email?: string;
+  telegram_id?: string;
+  created_at: string;
+  updated_at: string;
+  preferences?: {
+    age?: number;
+    gender?: 'Мужской' | 'Женский';
+    nutrition_goal?: string;
+    food_preferences?: string[];
+    allergies?: string[];
+  };
+  client_profile?: {
+    id: string;
+    subscription_status?: string;
+    subscription_expires?: string;
+    goals?: string[];
+    fitness_level?: string;
+    equipment_available?: string[];
+    limitations?: string[];
+    body_metrics?: {
+      height?: number;
+      weight?: number;
+    };
+  };
+  trainer_profile?: {
+    id:string;
+    qualifications?: string[];
+    specializations?: string[];
+    experience_years?: number;
+    bio?: string;
+    rating?: number;
+  };
+  // Client-side augmented fields for UI display
+  firstName?: string;
+  lastName?: string;
   avatar?: string;
-  level?: string; // для уровня ученика (пояса)
-  joinDate: Date;
 }
 
 export interface Workout {
   id: string;
-  title: string;
+  name: string;
   type: 'strength' | 'cardio' | 'flexibility' | 'group' | 'personal';
   date: Date;
   duration: number; // minutes
@@ -206,6 +238,106 @@ export interface Meal {
   fats: number;
   ingredients: string[];
   recipe?: string;
+}
+
+export interface Coach {
+  id: string;
+  firstName: string;
+  lastName: string;
+  avatar?: string;
+  bio?: string;
+  specialization?: string;
+  experience?: number; // years
+  certifications?: string[];
+  phone?: string;
+  telegramId?: string;
+  whatsappNumber?: string;
+  isActive: boolean;
+  joinDate: Date;
+  status: 'active' | 'inactive';
+  expiresAt: string;
+}
+
+// Export progress and analytics types
+export * from './progress';
+
+// Apple Health types
+export type HealthDataType = 
+  | 'steps'
+  | 'distance'
+  | 'activeEnergyBurned'
+  | 'basalEnergyBurned'
+  | 'heartRate'
+  | 'bodyMass'
+  | 'height'
+  | 'bodyFatPercentage'
+  | 'leanBodyMass'
+  | 'workouts'
+  | 'sleepAnalysis'
+  | 'restingHeartRate'
+  | 'vo2Max'
+  | 'bloodPressure'
+  | 'bloodGlucose';
+
+export interface HealthKitDataPoint {
+  value: number;
+  unit: string;
+  date: Date;
+  source: string;
+  metadata?: Record<string, any>;
+}
+
+export interface WorkoutData {
+  id: string;
+  type: WorkoutType;
+  startDate: Date;
+  endDate: Date;
+  duration: number; // minutes
+  totalEnergyBurned?: number; // calories
+  totalDistance?: number; // meters
+  averageHeartRate?: number;
+  maxHeartRate?: number;
+  metadata?: {
+    indoorWorkout?: boolean;
+    swimmingLocationType?: string;
+    elevation?: number;
+  };
+}
+
+export type WorkoutType = 
+  | 'running'
+  | 'walking'
+  | 'cycling'
+  | 'swimming'
+  | 'strength'
+  | 'yoga'
+  | 'pilates'
+  | 'dancing'
+  | 'boxing'
+  | 'climbing'
+  | 'rowing'
+  | 'crossTraining'
+  | 'other';
+
+export interface HealthMetrics {
+  steps: HealthKitDataPoint[];
+  calories: HealthKitDataPoint[];
+  weight: HealthKitDataPoint[];
+  heartRate: HealthKitDataPoint[];
+  workouts: WorkoutData[];
+  sleep: SleepData[];
+  bodyComposition: {
+    bodyFat?: HealthKitDataPoint[];
+    leanMass?: HealthKitDataPoint[];
+  };
+}
+
+export interface SleepData {
+  startDate: Date;
+  endDate: Date;
+  value: number; // hours
+  stage: 'inBed' | 'asleep' | 'awake' | 'core' | 'deep' | 'rem';
+}
 }
 
 // Спортивные организации

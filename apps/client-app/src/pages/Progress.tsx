@@ -1,210 +1,191 @@
 import React, { useState } from 'react';
 import {
   ChartBarIcon,
-  ScaleIcon,
   TrophyIcon,
-  CameraIcon,
-  PlusIcon,
+  CalendarIcon,
+  DocumentChartBarIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 import { Header } from '../components/common/Header';
-import { useAppStore } from '../store';
+import { ProgressChart } from '../components/progress/ProgressChart';
+import { WorkoutMetrics } from '../components/progress/WorkoutMetrics';
+import { GoalsAchievements } from '../components/progress/GoalsAchievements';
+import { DetailedAnalytics } from '../components/progress/DetailedAnalytics';
+import { TrainingPlan } from '../components/progress/TrainingPlan';
 
 export const Progress: React.FC = () => {
-  const { progressData, goals } = useAppStore();
-  const [activeTab, setActiveTab] = useState<'metrics' | 'goals' | 'photos'>('metrics');
-
-  const latestProgress = progressData[progressData.length - 1];
+  const [activeTab, setActiveTab] = useState<'overview' | 'metrics' | 'goals' | 'analytics' | 'plan'>('overview');
 
   const tabs = [
-    { id: 'metrics', name: 'Показатели', icon: ChartBarIcon },
-    { id: 'goals', name: 'Цели', icon: TrophyIcon },
-    { id: 'photos', name: 'Фото', icon: CameraIcon },
+    { id: 'overview', label: 'Обзор', icon: ChartBarIcon },
+    { id: 'metrics', label: 'Метрики', icon: DocumentChartBarIcon },
+    { id: 'goals', label: 'Цели', icon: TrophyIcon },
+    { id: 'analytics', label: 'Аналитика', icon: SparklesIcon },
+    { id: 'plan', label: 'План', icon: CalendarIcon },
   ];
 
-  const renderMetrics = () => (
+  // Mock данные для графиков
+  const weightData = [
+    { date: '2024-01-01', value: 82 },
+    { date: '2024-01-08', value: 81.8 },
+    { date: '2024-01-15', value: 81.5 },
+    { date: '2024-01-22', value: 81.2 },
+    { date: '2024-01-29', value: 80.8 },
+    { date: '2024-02-05', value: 80.5 },
+    { date: '2024-02-12', value: 80.3 },
+  ];
+
+  const workoutsData = [
+    { date: '2024-01-01', value: 3, label: 'Неделя 1' },
+    { date: '2024-01-08', value: 4, label: 'Неделя 2' },
+    { date: '2024-01-15', value: 3, label: 'Неделя 3' },
+    { date: '2024-01-22', value: 5, label: 'Неделя 4' },
+    { date: '2024-01-29', value: 4, label: 'Неделя 5' },
+    { date: '2024-02-05', value: 4, label: 'Неделя 6' },
+  ];
+
+  const caloriesData = [
+    { date: '2024-01-01', value: 1200 },
+    { date: '2024-01-08', value: 1400 },
+    { date: '2024-01-15', value: 1100 },
+    { date: '2024-01-22', value: 1600 },
+    { date: '2024-01-29', value: 1350 },
+    { date: '2024-02-05', value: 1450 },
+  ];
+
+  const renderOverviewTab = () => (
     <div className="space-y-6">
-      {/* Weight Progress */}
-      <div className="bg-white rounded-lg p-4">
+      {/* Быстрая статистика */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-4">
+          <div className="flex items-center space-x-2 mb-2">
+            <TrophyIcon className="h-6 w-6" />
+            <span className="text-sm font-medium">Тренировок</span>
+          </div>
+          <div className="text-2xl font-bold">47</div>
+          <div className="text-sm opacity-80">+8 за месяц</div>
+        </div>
+
+        <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg p-4">
+          <div className="flex items-center space-x-2 mb-2">
+            <ChartBarIcon className="h-6 w-6" />
+            <span className="text-sm font-medium">Прогресс</span>
+          </div>
+          <div className="text-2xl font-bold">85%</div>
+          <div className="text-sm opacity-80">к цели</div>
+        </div>
+      </div>
+
+      {/* Графики прогресса */}
+      <ProgressChart
+        title="Изменение веса"
+        data={weightData}
+        unit="кг"
+        color="bg-blue-500"
+        height={180}
+        enableAppleHealth={true}
+        appleHealthDataType="weight"
+      />
+
+      <ProgressChart
+        title="Тренировки в неделю"
+        data={workoutsData}
+        unit=" тр."
+        color="bg-green-500"
+        height={180}
+      />
+
+      <ProgressChart
+        title="Сожжено калорий"
+        data={caloriesData}
+        unit=" кал"
+        color="bg-orange-500"
+        height={180}
+        enableAppleHealth={true}
+        appleHealthDataType="calories"
+      />
+
+      {/* Краткий обзор целей */}
+      <div className="bg-white rounded-lg shadow-sm p-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-            <ScaleIcon className="h-5 w-5 mr-2 text-primary-600" />
-            Вес
-          </h3>
-          <button className="text-primary-600 text-sm font-medium">
-            Добавить запись
+          <h3 className="text-lg font-semibold text-gray-900">Активные цели</h3>
+          <button
+            onClick={() => setActiveTab('goals')}
+            className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+          >
+            Все цели →
           </button>
         </div>
         
-        {latestProgress?.weight ? (
-          <div className="space-y-3">
-            <div className="text-3xl font-bold text-gray-900">
-              {latestProgress.weight} кг
-            </div>
-            <div className="text-sm text-gray-600">
-              Последнее обновление: {new Date(latestProgress.date).toLocaleDateString('ru-RU')}
-            </div>
-            
-            {/* Mock chart placeholder */}
-            <div className="h-32 bg-gray-100 rounded-lg flex items-center justify-center">
-              <span className="text-gray-500">График изменения веса</span>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <ScaleIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-500">Добавьте первую запись веса</p>
-          </div>
-        )}
-      </div>
-
-      {/* Body Measurements */}
-      {latestProgress?.measurements && (
-        <div className="bg-white rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Замеры тела</h3>
-          <div className="grid grid-cols-2 gap-4">
-            {Object.entries(latestProgress.measurements).map(([key, value]) => {
-              if (!value) return null;
-              const labels: any = {
-                chest: 'Грудь',
-                waist: 'Талия',
-                hips: 'Бёдра',
-                biceps: 'Бицепс',
-                thigh: 'Бедро',
-              };
-              
-              return (
-                <div key={key} className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="text-lg font-semibold text-gray-900">{value} см</div>
-                  <div className="text-sm text-gray-600">{labels[key]}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Strength Metrics */}
-      {latestProgress?.strengthMetrics && (
-        <div className="bg-white rounded-lg p-4">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Силовые показатели</h3>
-          <div className="grid grid-cols-2 gap-4">
-            {Object.entries(latestProgress.strengthMetrics).map(([key, value]) => {
-              if (!value) return null;
-              const labels: any = {
-                benchPress: 'Жим лёжа',
-                squat: 'Приседания',
-                deadlift: 'Становая тяга',
-                pullUps: 'Подтягивания',
-              };
-              
-              return (
-                <div key={key} className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="text-lg font-semibold text-gray-900">
-                    {value} {key === 'pullUps' ? 'раз' : 'кг'}
-                  </div>
-                  <div className="text-sm text-gray-600">{labels[key]}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderGoals = () => (
-    <div className="space-y-4">
-      {goals.length > 0 ? (
-        goals.map((goal) => (
-          <div key={goal.id} className="bg-white rounded-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-gray-900">{goal.title}</h3>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                goal.status === 'completed' ? 'bg-green-100 text-green-800' :
-                goal.status === 'active' ? 'bg-blue-100 text-blue-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {goal.status === 'completed' ? 'Достигнуто' :
-                 goal.status === 'active' ? 'Активно' : 'Приостановлено'}
-              </span>
-            </div>
-            
-            <p className="text-sm text-gray-600 mb-3">{goal.description}</p>
-            
-            <div className="mb-3">
-              <div className="flex justify-between text-sm text-gray-600 mb-1">
-                <span>Прогресс</span>
-                <span>{goal.progress}%</span>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">Сбросить 5 кг</span>
+            <div className="flex items-center space-x-2">
+              <div className="w-20 bg-gray-200 rounded-full h-2">
+                <div className="bg-primary-500 h-2 rounded-full" style={{ width: '60%' }} />
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${goal.progress}%` }}
-                />
-              </div>
-            </div>
-            
-            <div className="text-xs text-gray-500">
-              Цель до {new Date(goal.targetDate).toLocaleDateString('ru-RU')}
+              <span className="text-sm font-medium">60%</span>
             </div>
           </div>
-        ))
-      ) : (
-        <div className="text-center py-12">
-          <TrophyIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Нет активных целей</h3>
-          <p className="text-gray-600 mb-4">Поставьте свою первую цель!</p>
-          <button className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Добавить цель
-          </button>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">Подтянуться 15 раз</span>
+            <div className="flex items-center space-x-2">
+              <div className="w-20 bg-gray-200 rounded-full h-2">
+                <div className="bg-primary-500 h-2 rounded-full" style={{ width: '80%' }} />
+              </div>
+              <span className="text-sm font-medium">80%</span>
+            </div>
+          </div>
         </div>
-      )}
-    </div>
-  );
-
-  const renderPhotos = () => (
-    <div className="space-y-4">
-      <div className="text-center py-12">
-        <CameraIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Фото прогресса</h3>
-        <p className="text-gray-600 mb-4">Добавляйте фото для отслеживания визуального прогресса</p>
-        <button className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-          <PlusIcon className="h-4 w-4 mr-2" />
-          Добавить фото
-        </button>
       </div>
     </div>
   );
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return renderOverviewTab();
+      case 'metrics':
+        return <WorkoutMetrics />;
+      case 'goals':
+        return <GoalsAchievements />;
+      case 'analytics':
+        return <DetailedAnalytics />;
+      case 'plan':
+        return <TrainingPlan />;
+      default:
+        return renderOverviewTab();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title="Прогресс" />
+      <Header title="Прогресс и аналитика" />
       
-      <div className="px-4 py-6 pb-24">
-        {/* Tabs */}
-        <div className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
+      {/* Tab Navigation */}
+      <div className="bg-white border-b border-gray-200 px-4 overflow-x-auto">
+        <div className="flex space-x-1 max-w-full">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 flex items-center justify-center py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+              className={`flex items-center space-x-2 py-3 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              <tab.icon className="h-4 w-4 mr-2" />
-              {tab.name}
+              <tab.icon className="h-4 w-4" />
+              <span>{tab.label}</span>
             </button>
           ))}
         </div>
-
-        {/* Tab Content */}
-        {activeTab === 'metrics' && renderMetrics()}
-        {activeTab === 'goals' && renderGoals()}
-        {activeTab === 'photos' && renderPhotos()}
       </div>
+
+      <main className="px-4 py-6 max-w-md mx-auto pb-24">
+        {renderContent()}
+      </main>
     </div>
   );
 }; 

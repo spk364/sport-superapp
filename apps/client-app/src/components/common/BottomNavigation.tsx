@@ -1,75 +1,91 @@
 import React from 'react';
 import {
   HomeIcon,
-  CalendarDaysIcon,
   ChartBarIcon,
   ChatBubbleLeftRightIcon,
+  CalendarDaysIcon,
+  QrCodeIcon,
   UserIcon,
 } from '@heroicons/react/24/outline';
 import {
   HomeIcon as HomeIconSolid,
-  CalendarDaysIcon as CalendarDaysIconSolid,
   ChartBarIcon as ChartBarIconSolid,
   ChatBubbleLeftRightIcon as ChatBubbleLeftRightIconSolid,
+  CalendarDaysIcon as CalendarDaysIconSolid,
+  QrCodeIcon as QrCodeIconSolid,
   UserIcon as UserIconSolid,
 } from '@heroicons/react/24/solid';
 import { useAppStore } from '../../store';
 
-const navigation = [
-  { 
-    name: 'Главная', 
-    page: 'dashboard', 
-    icon: HomeIcon, 
-    activeIcon: HomeIconSolid 
+interface NavItem {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  activeIcon: React.ComponentType<{ className?: string }>;
+}
+
+const navItems: NavItem[] = [
+  {
+    id: 'dashboard',
+    label: 'Главная',
+    icon: HomeIcon,
+    activeIcon: HomeIconSolid,
   },
-  { 
-    name: 'Календарь', 
-    page: 'calendar', 
-    icon: CalendarDaysIcon, 
-    activeIcon: CalendarDaysIconSolid 
+  {
+    id: 'progress',
+    label: 'Прогресс',
+    icon: ChartBarIcon,
+    activeIcon: ChartBarIconSolid,
   },
-  { 
-    name: 'Прогресс', 
-    page: 'progress', 
-    icon: ChartBarIcon, 
-    activeIcon: ChartBarIconSolid 
+  {
+    id: 'calendar',
+    label: 'Календарь',
+    icon: CalendarDaysIcon,
+    activeIcon: CalendarDaysIconSolid,
   },
-  { 
-    name: 'ИИ Тренер', 
-    page: 'chat', 
-    icon: ChatBubbleLeftRightIcon, 
-    activeIcon: ChatBubbleLeftRightIconSolid 
+  {
+    id: 'chat',
+    label: 'Чат',
+    icon: ChatBubbleLeftRightIcon,
+    activeIcon: ChatBubbleLeftRightIconSolid,
   },
-  { 
-    name: 'Профиль', 
-    page: 'profile', 
-    icon: UserIcon, 
-    activeIcon: UserIconSolid 
+  {
+    id: 'qr-scanner',
+    label: 'QR',
+    icon: QrCodeIcon,
+    activeIcon: QrCodeIconSolid,
+  },
+  {
+    id: 'profile',
+    label: 'Профиль',
+    icon: UserIcon,
+    activeIcon: UserIconSolid,
   },
 ];
 
 export const BottomNavigation: React.FC = () => {
-  const { currentPage, setCurrentPage } = useAppStore();
+  const currentPage = useAppStore((state) => state.currentPage);
+  const setCurrentPage = useAppStore((state) => state.setCurrentPage);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 safe-area-pb">
-      <div className="flex justify-around items-center max-w-md mx-auto">
-        {navigation.map((item) => {
-          const isActive = currentPage === item.page;
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 safe-area-pb">
+      <div className="flex justify-around items-center py-3 max-w-md mx-auto">
+        {navItems.map((item) => {
+          const isActive = currentPage === item.id;
           const Icon = isActive ? item.activeIcon : item.icon;
           
           return (
             <button
-              key={item.page}
-              onClick={() => setCurrentPage(item.page)}
-              className={`flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors ${
+              key={item.id}
+              onClick={() => setCurrentPage(item.id)}
+              className={`flex items-center justify-center p-2 min-w-0 flex-1 transition-colors ${
                 isActive
                   ? 'text-primary-600'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
+              title={item.label}
             >
-              <Icon className="h-6 w-6 mb-1" />
-              <span className="text-xs font-medium">{item.name}</span>
+              <Icon className="h-6 w-6" />
             </button>
           );
         })}
