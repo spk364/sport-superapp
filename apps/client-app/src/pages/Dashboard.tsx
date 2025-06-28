@@ -174,17 +174,28 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-4">
-          <button className="bg-gradient-to-r from-primary-500 to-primary-600 text-white p-4 rounded-lg text-center">
-            <div className="text-lg font-semibold">Записать заметку</div>
-            <div className="text-sm opacity-90">О тренировке или самочувствии</div>
-          </button>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <button className="bg-gradient-to-r from-primary-500 to-primary-600 text-white p-4 rounded-lg text-center">
+              <div className="text-lg font-semibold">Записать заметку</div>
+              <div className="text-sm opacity-90">О тренировке или самочувствии</div>
+            </button>
+            <button 
+              onClick={() => setCurrentPage('chat')}
+              className="bg-gradient-to-r from-accent-500 to-accent-600 text-white p-4 rounded-lg text-center"
+            >
+              <div className="text-lg font-semibold">Чат с ИИ</div>
+              <div className="text-sm opacity-90">Задать вопрос тренеру</div>
+            </button>
+          </div>
+
+          {/* Organization Registration */}
           <button 
-            onClick={() => setCurrentPage('chat')}
-            className="bg-gradient-to-r from-accent-500 to-accent-600 text-white p-4 rounded-lg text-center"
+            onClick={() => setCurrentPage('organization-registration')}
+            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 rounded-lg text-center"
           >
-            <div className="text-lg font-semibold">Чат с ИИ</div>
-            <div className="text-sm opacity-90">Задать вопрос тренеру</div>
+            <div className="text-lg font-semibold">Зарегистрировать организацию</div>
+            <div className="text-sm opacity-90">Добавить спортивную организацию или стать тренером</div>
           </button>
         </div>
       </div>

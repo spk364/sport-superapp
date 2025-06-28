@@ -206,4 +206,183 @@ export interface Meal {
   fats: number;
   ingredients: string[];
   recipe?: string;
+}
+
+// Спортивные организации
+export interface SportOrganization {
+  id: string;
+  name: string;
+  type: OrganizationType;
+  description?: string;
+  specializations: SportSpecialization[];
+  packages: ServicePackage[];
+  contact: ContactInfo;
+  location: LocationInfo;
+  legalInfo: LegalInfo;
+  media: MediaInfo;
+  socialMedia: SocialMediaLinks;
+  trainers: TrainerInfo[];
+  status: 'pending' | 'approved' | 'rejected' | 'suspended';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type OrganizationType = 
+  | 'personal_trainer'
+  | 'gym'
+  | 'sports_club'
+  | 'fitness_studio'
+  | 'sports_section'
+  | 'martial_arts_school'
+  | 'yoga_studio'
+  | 'dance_studio'
+  | 'swimming_pool'
+  | 'other';
+
+export type SportSpecialization = 
+  | 'strength_training'
+  | 'cardio'
+  | 'yoga'
+  | 'pilates'
+  | 'martial_arts'
+  | 'boxing'
+  | 'swimming'
+  | 'running'
+  | 'crossfit'
+  | 'bodybuilding'
+  | 'powerlifting'
+  | 'gymnastics'
+  | 'dance'
+  | 'stretching'
+  | 'rehabilitation'
+  | 'group_classes'
+  | 'personal_training'
+  | 'nutrition_consulting'
+  | 'other';
+
+export interface ServicePackage {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  duration?: number; // дни
+  sessionsCount?: number;
+  features: string[];
+  isPopular?: boolean;
+  isActive: boolean;
+}
+
+export interface ContactInfo {
+  phone: string[];
+  email: string[];
+  website?: string;
+  workingHours: WorkingHours;
+  paymentMethods: PaymentMethod[];
+}
+
+export interface WorkingHours {
+  monday?: TimeSlot;
+  tuesday?: TimeSlot;
+  wednesday?: TimeSlot;
+  thursday?: TimeSlot;
+  friday?: TimeSlot;
+  saturday?: TimeSlot;
+  sunday?: TimeSlot;
+  is24Hours?: boolean;
+  holidays?: string[];
+}
+
+export interface TimeSlot {
+  open: string; // HH:MM
+  close: string; // HH:MM
+  isOpen: boolean;
+}
+
+export type PaymentMethod = 
+  | 'cash'
+  | 'card'
+  | 'bank_transfer'
+  | 'qr_code'
+  | 'kaspi'
+  | 'halyk'
+  | 'sber'
+  | 'installments';
+
+export interface LocationInfo {
+  country: string;
+  city: string;
+  address: string;
+  postalCode?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+  landmarks?: string;
+  parking?: boolean;
+  publicTransport?: string;
+}
+
+export interface LegalInfo {
+  bin?: string; // БИН организации
+  legalName?: string;
+  registrationDate?: Date;
+  taxRegime?: string;
+  director?: string;
+  isIndividualEntrepreneur: boolean;
+  licenses?: License[];
+}
+
+export interface License {
+  id: string;
+  type: string;
+  number: string;
+  issueDate: Date;
+  expiryDate?: Date;
+  issuer: string;
+  documentUrl?: string;
+}
+
+export interface MediaInfo {
+  logo?: string;
+  cover?: string;
+  gallery: string[];
+  videos?: string[];
+  colorScheme?: {
+    primary: string;
+    secondary: string;
+    accent: string;
+  };
+}
+
+export interface SocialMediaLinks {
+  instagram?: string;
+  facebook?: string;
+  youtube?: string;
+  tiktok?: string;
+  whatsapp?: string;
+  telegram?: string;
+  vk?: string;
+}
+
+export interface TrainerInfo {
+  id: string;
+  firstName: string;
+  lastName: string;
+  avatar?: string;
+  specializations: SportSpecialization[];
+  experience: number; // лет
+  certifications: Certification[];
+  bio?: string;
+  rating?: number;
+  isActive: boolean;
+}
+
+export interface Certification {
+  id: string;
+  name: string;
+  issuer: string;
+  issueDate: Date;
+  expiryDate?: Date;
+  certificateUrl?: string;
 } 

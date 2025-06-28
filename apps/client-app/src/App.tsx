@@ -5,6 +5,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Calendar } from './pages/Calendar';
 import { Progress } from './pages/Progress';
 import { Chat } from './pages/Chat';
+import { OrganizationRegistration } from './pages/OrganizationRegistration';
 
 // Mock data for development
 const mockUser = {
@@ -115,6 +116,8 @@ function App() {
             <p className="text-gray-600">Страница в разработке</p>
           </div>
         </div>;
+      case 'organization-registration':
+        return <OrganizationRegistration />;
       default:
         return <Dashboard />;
     }
