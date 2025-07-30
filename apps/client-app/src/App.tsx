@@ -3,6 +3,7 @@ import { useAppStore } from './store';
 import { Dashboard } from './pages/Dashboard';
 import { Progress } from './pages/Progress';
 import { Chat } from './pages/Chat';
+import { OrganizationRegistration } from './pages/OrganizationRegistration';
 import { QRScanner } from './pages/QRScanner';
 import { Profile } from './pages/Profile';
 import { Calendar } from './pages/Calendar';
@@ -29,6 +30,15 @@ const App: React.FC = () => {
         return <Calendar />;
       case 'chat':
         return <Chat />;
+      case 'notifications':
+        return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Уведомления</h2>
+            <p className="text-gray-600">Страница в разработке</p>
+          </div>
+        </div>;
+      case 'organization-registration':
+        return <OrganizationRegistration />;
       case 'qr-scanner':
         return <QRScanner />;
       case 'profile':
