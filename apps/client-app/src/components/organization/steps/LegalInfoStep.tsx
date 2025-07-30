@@ -13,6 +13,7 @@ export const LegalInfoStep: React.FC<LegalInfoStepProps> = ({ data, errors, onCh
   const handleLegalInfoChange = (field: string, value: string | boolean) => {
     onChange({
       legalInfo: {
+        isIndividualEntrepreneur: data.legalInfo?.isIndividualEntrepreneur ?? false,
         ...data.legalInfo,
         [field]: value
       }
@@ -29,6 +30,7 @@ export const LegalInfoStep: React.FC<LegalInfoStepProps> = ({ data, errors, onCh
       if (result.success && result.data) {
         onChange({
           legalInfo: {
+            isIndividualEntrepreneur: data.legalInfo?.isIndividualEntrepreneur ?? false,
             ...data.legalInfo,
             bin: result.data.bin,
             legalName: result.data.legalName,

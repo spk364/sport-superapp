@@ -11,6 +11,7 @@ export const MediaStep: React.FC<MediaStepProps> = ({ data, errors, onChange }) 
   const handleMediaChange = (field: string, value: string | string[]) => {
     onChange({
       media: {
+        gallery: data.media?.gallery || [],
         ...data.media,
         [field]: value
       }
@@ -20,8 +21,12 @@ export const MediaStep: React.FC<MediaStepProps> = ({ data, errors, onChange }) 
   const handleColorChange = (field: string, value: string) => {
     onChange({
       media: {
+        gallery: data.media?.gallery || [],
         ...data.media,
         colorScheme: {
+          primary: data.media?.colorScheme?.primary || '#3B82F6',
+          secondary: data.media?.colorScheme?.secondary || '#8B5CF6',
+          accent: data.media?.colorScheme?.accent || '#06B6D4',
           ...data.media?.colorScheme,
           [field]: value
         }

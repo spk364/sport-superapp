@@ -338,7 +338,6 @@ export interface SleepData {
   value: number; // hours
   stage: 'inBed' | 'asleep' | 'awake' | 'core' | 'deep' | 'rem';
 }
-}
 
 // Спортивные организации
 export interface SportOrganization {

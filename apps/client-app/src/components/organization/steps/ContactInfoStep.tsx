@@ -34,8 +34,11 @@ export const ContactInfoStep: React.FC<ContactInfoStepProps> = ({ data, errors, 
     phones[index] = value;
     onChange({
       contact: {
-        ...data.contact,
-        phone: phones
+        phone: phones,
+        email: data.contact?.email || [''],
+        workingHours: data.contact?.workingHours || {},
+        paymentMethods: data.contact?.paymentMethods || [],
+        ...data.contact
       }
     });
   };
@@ -44,8 +47,11 @@ export const ContactInfoStep: React.FC<ContactInfoStepProps> = ({ data, errors, 
     const phones = [...(data.contact?.phone || []), ''];
     onChange({
       contact: {
-        ...data.contact,
-        phone: phones
+        phone: phones,
+        email: data.contact?.email || [''],
+        workingHours: data.contact?.workingHours || {},
+        paymentMethods: data.contact?.paymentMethods || [],
+        ...data.contact
       }
     });
   };
@@ -54,8 +60,11 @@ export const ContactInfoStep: React.FC<ContactInfoStepProps> = ({ data, errors, 
     const phones = (data.contact?.phone || []).filter((_, i) => i !== index);
     onChange({
       contact: {
-        ...data.contact,
-        phone: phones
+        phone: phones,
+        email: data.contact?.email || [''],
+        workingHours: data.contact?.workingHours || {},
+        paymentMethods: data.contact?.paymentMethods || [],
+        ...data.contact
       }
     });
   };
@@ -65,8 +74,11 @@ export const ContactInfoStep: React.FC<ContactInfoStepProps> = ({ data, errors, 
     emails[index] = value;
     onChange({
       contact: {
-        ...data.contact,
-        email: emails
+        email: emails,
+        phone: data.contact?.phone || [''],
+        workingHours: data.contact?.workingHours || {},
+        paymentMethods: data.contact?.paymentMethods || [],
+        ...data.contact
       }
     });
   };
@@ -75,8 +87,11 @@ export const ContactInfoStep: React.FC<ContactInfoStepProps> = ({ data, errors, 
     const emails = [...(data.contact?.email || []), ''];
     onChange({
       contact: {
-        ...data.contact,
-        email: emails
+        email: emails,
+        phone: data.contact?.phone || [''],
+        workingHours: data.contact?.workingHours || {},
+        paymentMethods: data.contact?.paymentMethods || [],
+        ...data.contact
       }
     });
   };
@@ -85,8 +100,11 @@ export const ContactInfoStep: React.FC<ContactInfoStepProps> = ({ data, errors, 
     const emails = (data.contact?.email || []).filter((_, i) => i !== index);
     onChange({
       contact: {
-        ...data.contact,
-        email: emails
+        email: emails,
+        phone: data.contact?.phone || [''],
+        workingHours: data.contact?.workingHours || {},
+        paymentMethods: data.contact?.paymentMethods || [],
+        ...data.contact
       }
     });
   };
@@ -94,14 +112,17 @@ export const ContactInfoStep: React.FC<ContactInfoStepProps> = ({ data, errors, 
   const handleWorkingHoursChange = (day: string, field: string, value: string | boolean) => {
     onChange({
       contact: {
-        ...data.contact,
         workingHours: {
           ...data.contact?.workingHours,
           [day]: {
             ...data.contact?.workingHours?.[day as keyof typeof data.contact.workingHours],
             [field]: value
           }
-        }
+        },
+        phone: data.contact?.phone || [''],
+        email: data.contact?.email || [''],
+        paymentMethods: data.contact?.paymentMethods || [],
+        ...data.contact
       }
     });
   };
@@ -114,8 +135,11 @@ export const ContactInfoStep: React.FC<ContactInfoStepProps> = ({ data, errors, 
     
     onChange({
       contact: {
-        ...data.contact,
-        paymentMethods: updatedMethods
+        paymentMethods: updatedMethods,
+        phone: data.contact?.phone || [''],
+        email: data.contact?.email || [''],
+        workingHours: data.contact?.workingHours || {},
+        ...data.contact
       }
     });
   };
@@ -219,8 +243,12 @@ export const ContactInfoStep: React.FC<ContactInfoStepProps> = ({ data, errors, 
           value={data.contact?.website || ''}
           onChange={(e) => onChange({
             contact: {
-              ...data.contact,
-              website: e.target.value
+              website: e.target.value,
+              phone: data.contact?.phone || [''],
+              email: data.contact?.email || [''],
+              workingHours: data.contact?.workingHours || {},
+              paymentMethods: data.contact?.paymentMethods || [],
+              ...data.contact
             }
           })}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

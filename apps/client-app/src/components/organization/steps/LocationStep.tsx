@@ -34,6 +34,9 @@ export const LocationStep: React.FC<LocationStepProps> = ({ data, errors, onChan
   const handleLocationChange = (field: string, value: string | boolean) => {
     onChange({
       location: {
+        country: data.location?.country || 'Казахстан',
+        city: data.location?.city || '',
+        address: data.location?.address || '',
         ...data.location,
         [field]: value
       }
@@ -45,10 +48,13 @@ export const LocationStep: React.FC<LocationStepProps> = ({ data, errors, onChan
     if (!isNaN(numValue)) {
       onChange({
         location: {
+          country: data.location?.country || 'Казахстан',
+          city: data.location?.city || '',
+          address: data.location?.address || '',
           ...data.location,
           coordinates: {
-            ...data.location?.coordinates,
-            [field]: numValue
+            lat: field === 'lat' ? numValue : (data.location?.coordinates?.lat || 0),
+            lng: field === 'lng' ? numValue : (data.location?.coordinates?.lng || 0)
           }
         }
       });
