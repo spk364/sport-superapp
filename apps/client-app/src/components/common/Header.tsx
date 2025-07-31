@@ -1,6 +1,7 @@
-import React from 'react';
-import { BellIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
+import React, { useState } from 'react';
+import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import { useAppStore } from '../../store';
+import { NotificationsDropdown } from '../notifications/NotificationsDropdown';
 
 interface HeaderProps {
   title: string;
@@ -14,8 +15,8 @@ export const Header: React.FC<HeaderProps> = ({
   showChat = true,
 }) => {
   const user = useAppStore((state) => state.user);
-  const unreadCount = useAppStore((state) => state.unreadCount);
   const setCurrentPage = useAppStore((state) => state.setCurrentPage);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   return (
     <div className="bg-white border-b border-gray-200 px-4 py-3 safe-area-pt">
@@ -55,17 +56,11 @@ export const Header: React.FC<HeaderProps> = ({
           )}
           
           {showNotifications && (
-            <button
-              onClick={() => setCurrentPage('notifications')}
-              className="relative p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-            >
-              <BellIcon className="h-6 w-6 text-gray-600" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </button>
+            <NotificationsDropdown
+              isOpen={notificationsOpen}
+              onClose={() => setNotificationsOpen(false)}
+              onToggle={() => setNotificationsOpen(!notificationsOpen)}
+            />
           )}
         </div>
       </div>

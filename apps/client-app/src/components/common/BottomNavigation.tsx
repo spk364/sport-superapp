@@ -6,6 +6,7 @@ import {
   CalendarDaysIcon,
   QrCodeIcon,
   UserIcon,
+  CreditCardIcon,
 } from '@heroicons/react/24/outline';
 import {
   HomeIcon as HomeIconSolid,
@@ -14,6 +15,7 @@ import {
   CalendarDaysIcon as CalendarDaysIconSolid,
   QrCodeIcon as QrCodeIconSolid,
   UserIcon as UserIconSolid,
+  CreditCardIcon as CreditCardIconSolid,
 } from '@heroicons/react/24/solid';
 import { useAppStore } from '../../store';
 
@@ -32,6 +34,12 @@ const navItems: NavItem[] = [
     activeIcon: HomeIconSolid,
   },
   {
+    id: 'subscription',
+    label: 'Абонемент',
+    icon: CreditCardIcon,
+    activeIcon: CreditCardIconSolid,
+  },
+  {
     id: 'progress',
     label: 'Прогресс',
     icon: ChartBarIcon,
@@ -48,12 +56,6 @@ const navItems: NavItem[] = [
     label: 'Чат',
     icon: ChatBubbleLeftRightIcon,
     activeIcon: ChatBubbleLeftRightIconSolid,
-  },
-  {
-    id: 'qr-scanner',
-    label: 'QR',
-    icon: QrCodeIcon,
-    activeIcon: QrCodeIconSolid,
   },
   {
     id: 'profile',

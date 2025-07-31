@@ -7,6 +7,7 @@ import { OrganizationRegistration } from './pages/OrganizationRegistration';
 import { QRScanner } from './pages/QRScanner';
 import { Profile } from './pages/Profile';
 import { Calendar } from './pages/Calendar';
+import { SubscriptionManagement } from './pages/SubscriptionManagement';
 import { BottomNavigation } from './components/common/BottomNavigation';
 import { Loader } from './components/common/Loader';
 
@@ -30,6 +31,8 @@ const App: React.FC = () => {
         return <Calendar />;
       case 'chat':
         return <Chat />;
+      case 'subscription':
+        return <SubscriptionManagement />;
       case 'notifications':
         return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">

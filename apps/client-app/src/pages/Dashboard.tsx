@@ -11,6 +11,11 @@ import { Header } from '../components/common/Header';
 import { AIAssistantWidget } from '../components/common/AIAssistantWidget';
 import { MyCoachWidget } from '../components/common/MyCoachWidget';
 import { DashboardCalendar } from '../components/dashboard/DashboardCalendar';
+import { SubscriptionAlerts } from '../components/dashboard/SubscriptionAlerts';
+import { SubscriptionNotifications } from '../components/dashboard/SubscriptionNotifications';
+import { SuccessNotificationBanner } from '../components/dashboard/SuccessNotificationBanner';
+import { SubscriptionHistoryWidget } from '../components/dashboard/SubscriptionHistoryWidget';
+import { PersistenceTestWidget } from '../components/dashboard/PersistenceTestWidget';
 import { useAppStore } from '../store';
 
 export const Dashboard: React.FC = () => {
@@ -21,6 +26,10 @@ export const Dashboard: React.FC = () => {
   const startQuestionnaire = useAppStore((state) => state.startQuestionnaire);
   const loadMockWorkouts = useAppStore((state) => state.loadMockWorkouts);
   const setCurrentPage = useAppStore((state) => state.setCurrentPage);
+  const renewSubscription = useAppStore((state) => state.renewSubscription);
+  const updateSubscriptionSettings = useAppStore((state) => state.updateSubscriptionSettings);
+  const dismissAlert = useAppStore((state) => state.dismissAlert);
+  const fetchSubscriptionPlans = useAppStore((state) => state.fetchSubscriptionPlans);
   
   const hasInitialized = useRef(false);
 
@@ -41,8 +50,27 @@ export const Dashboard: React.FC = () => {
   const pendingTasks = homeTasks.filter(task => !task.completed);
   const completedTasks = homeTasks.filter(task => task.completed);
 
-  const isSubscriptionExpiringSoon = subscription && 
-    new Date(subscription.endDate).getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000;
+  const handleRenewSubscription = async () => {
+    if (subscription) {
+      try {
+        await renewSubscription(subscription.id);
+      } catch (error) {
+        console.error('Failed to renew subscription:', error);
+      }
+    } else {
+      // Navigate to subscription plans
+      setCurrentPage('subscription');
+    }
+  };
+
+  const handleManageSubscription = () => {
+    // Navigate to subscription management page
+    setCurrentPage('subscription');
+  };
+
+  const handleDismissAlert = (alertType: string) => {
+    dismissAlert(alertType);
+  };
 
   const getProfileCompleteness = () => {
     if (!user) return 100; // If no user, don't show banner
@@ -134,25 +162,16 @@ export const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Subscription Alert */}
-        {isSubscriptionExpiringSoon && (
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <div className="flex items-start space-x-3">
-              <ExclamationTriangleIcon className="h-6 w-6 text-orange-600 mt-0.5" />
-              <div>
-                <h3 className="text-sm font-medium text-orange-800">
-                  Скоро истекает абонемент
-                </h3>
-                <p className="text-sm text-orange-700 mt-1">
-                  Ваш абонемент истекает {new Date(subscription.endDate).toLocaleDateString('ru-RU')}
-                </p>
-                <button className="mt-2 text-sm font-medium text-orange-800 underline">
-                  Продлить сейчас
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Success Notification Banner */}
+        <SuccessNotificationBanner />
+
+        {/* Subscription Alerts */}
+        <SubscriptionAlerts
+          subscription={subscription}
+          onRenewSubscription={handleRenewSubscription}
+          onManageSubscription={handleManageSubscription}
+          onDismissAlert={handleDismissAlert}
+        />
 
         {/* Today's Workout */}
         {todayWorkout && (
@@ -194,6 +213,15 @@ export const Dashboard: React.FC = () => {
 
         {/* AI Assistant Widget */}
         <AIAssistantWidget />
+
+        {/* Subscription Notifications */}
+        <SubscriptionNotifications subscription={subscription} />
+
+        {/* Subscription History */}
+        <SubscriptionHistoryWidget />
+
+        {/* Persistence Test Widget (dev only) */}
+        <PersistenceTestWidget />
 
         {/* Upcoming Workouts */}
         {upcomingWorkouts.length > 0 && (

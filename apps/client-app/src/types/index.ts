@@ -122,6 +122,20 @@ export interface Subscription {
   autoRenewal: boolean;
 }
 
+export interface SubscriptionHistory {
+  id: string;
+  subscriptionId: string;
+  type: 'purchase' | 'renewal' | 'cancellation' | 'modification';
+  planName: string;
+  amount: number;
+  currency: string;
+  paymentMethod: string;
+  transactionId?: string;
+  date: Date;
+  status: 'completed' | 'failed' | 'pending';
+  description: string;
+}
+
 export interface Payment {
   id: string;
   amount: number;

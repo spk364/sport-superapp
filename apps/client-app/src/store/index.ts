@@ -1,6 +1,58 @@
 import { create } from 'zustand';
-import { User, Workout, Progress, Subscription, HomeTask, Note, Goal, Notification } from '../types';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { User, Workout, Progress, Subscription, SubscriptionHistory, HomeTask, Note, Goal, Notification } from '../types';
 import { aiService, ConversationMessage } from '../services/aiService';
+import { subscriptionService, SubscriptionPlan } from '../services/subscriptionService';
+
+// Date serialization helpers for localStorage
+const dateReviver = (key: string, value: any) => {
+  // Convert string dates back to Date objects
+  if (typeof value === 'string') {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+    if (dateRegex.test(value)) {
+      return new Date(value);
+    }
+  }
+  // Handle dismissedAlerts Set
+  if (key === 'dismissedAlerts' && Array.isArray(value)) {
+    return new Set(value);
+  }
+  return value;
+};
+
+const dateReplacer = (key: string, value: any) => {
+  // Convert Date objects to ISO strings for storage
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  // Handle dismissedAlerts Set
+  if (key === 'dismissedAlerts' && value instanceof Set) {
+    return Array.from(value);
+  }
+  return value;
+};
+
+// Persistence configuration
+const persistConfig = {
+  name: 'app-store',
+  storage: createJSONStorage(() => localStorage, {
+    reviver: dateReviver,
+    replacer: dateReplacer,
+  }),
+  // Only persist important user data
+  partialize: (state: AppState) => ({
+    user: state.user,
+    subscription: state.subscription,
+    subscriptionHistory: state.subscriptionHistory,
+    isAuthenticated: state.isAuthenticated,
+    notifications: state.notifications,
+    dismissedAlerts: state.dismissedAlerts,
+    homeTasks: state.homeTasks,
+    notes: state.notes,
+    goals: state.goals,
+    unreadCount: state.unreadCount,
+  }),
+};
 
 // Mock workout data for calendar display
 const createMockWorkouts = (): Workout[] => {
@@ -239,6 +291,9 @@ interface AppState {
   
   // Subscription & Payments
   subscription: Subscription | null;
+  subscriptionPlans: SubscriptionPlan[];
+  subscriptionHistory: SubscriptionHistory[];
+  dismissedAlerts: Set<string>;
   
   // Tasks & Notes
   homeTasks: HomeTask[];
@@ -272,6 +327,16 @@ interface AppState {
   fetchWorkouts: (userId?: string) => Promise<void>;
   addProgressEntry: (progress: Progress) => void;
   setSubscription: (subscription: Subscription | null) => void;
+  fetchSubscription: (userId: string) => Promise<void>;
+  fetchSubscriptionPlans: () => Promise<void>;
+  renewSubscription: (subscriptionId: string, planId?: string) => Promise<void>;
+  updateSubscription: (subscription: Subscription) => void;
+  addSubscriptionHistory: (historyItem: Omit<SubscriptionHistory, 'id'>) => void;
+  updateSubscriptionSettings: (subscriptionId: string, updates: { autoRenewal?: boolean; paymentMethod?: string }) => Promise<void>;
+  cancelSubscription: (subscriptionId: string, reason?: string) => Promise<void>;
+  dismissAlert: (alertType: string) => void;
+  clearDismissedAlerts: () => void;
+  showSuccessNotification: (message: string, type?: 'purchase' | 'renewal' | 'general') => void;
   addHomeTask: (task: HomeTask) => void;
   completeHomeTask: (taskId: string) => void;
   addNote: (note: Note) => void;
@@ -279,6 +344,8 @@ interface AppState {
   updateGoalProgress: (goalId: string, progress: number) => void;
   addNotification: (notification: Notification) => void;
   markNotificationAsRead: (notificationId: string) => void;
+  clearNotifications: () => void;
+  addTestNotifications: () => void;
   setLoading: (isLoading: boolean) => void;
   setError: (error: string | null) => void;
   clearError: () => void;
@@ -294,7 +361,9 @@ interface AppState {
   setChatLoading: (loading: boolean) => void;
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
+export const useAppStore = create<AppState>()(
+  persist(
+    (set, get) => ({
   // Initial state
   user: null,
   isAuthenticated: false,
@@ -302,7 +371,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   workouts: [],
   selectedWorkout: null,
   progressData: [],
-  subscription: null,
+      subscription: null,
+    subscriptionPlans: [],
+    subscriptionHistory: [],
+    dismissedAlerts: new Set(),
   homeTasks: [
     {
       id: 'task-1',
@@ -456,6 +528,175 @@ export const useAppStore = create<AppState>((set, get) => ({
   })),
   
   setSubscription: (subscription) => set({ subscription }),
+
+  fetchSubscription: async (userId) => {
+    try {
+      set({ isLoading: true, error: null });
+      const subscription = await subscriptionService.getCurrentSubscription(userId);
+      set({ subscription, isLoading: false });
+    } catch (error) {
+      console.error('Error fetching subscription:', error);
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to fetch subscription',
+        isLoading: false 
+      });
+    }
+  },
+
+  fetchSubscriptionPlans: async () => {
+    try {
+      const plans = await subscriptionService.getSubscriptionPlans();
+      set({ subscriptionPlans: plans });
+    } catch (error) {
+      console.error('Error fetching subscription plans:', error);
+      set({ error: error instanceof Error ? error.message : 'Failed to fetch subscription plans' });
+    }
+  },
+
+  renewSubscription: async (subscriptionId, planId) => {
+    try {
+      set({ isLoading: true, error: null });
+      const { subscription } = await subscriptionService.renewSubscription(subscriptionId, planId);
+      set({ subscription, isLoading: false });
+      
+      // Add success notification
+      const { addNotification } = get();
+      addNotification({
+        id: `renewal_${Date.now()}`,
+        title: 'Абонемент продлён',
+        message: `Ваш абонемент успешно продлён до ${new Date(subscription.endDate).toLocaleDateString('ru-RU')}`,
+        type: 'general',
+        read: false,
+        date: new Date(),
+      });
+    } catch (error) {
+      console.error('Error renewing subscription:', error);
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to renew subscription',
+        isLoading: false 
+      });
+    }
+  },
+
+  updateSubscriptionSettings: async (subscriptionId, updates) => {
+    try {
+      set({ isLoading: true, error: null });
+      const subscription = await subscriptionService.updateSubscription(subscriptionId, updates);
+      set({ subscription, isLoading: false });
+      
+      // Add success notification
+      const { addNotification } = get();
+      addNotification({
+        id: `settings_${Date.now()}`,
+        title: 'Настройки обновлены',
+        message: 'Настройки абонемента успешно обновлены',
+        type: 'general',
+        read: false,
+        date: new Date(),
+      });
+    } catch (error) {
+      console.error('Error updating subscription settings:', error);
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to update subscription settings',
+        isLoading: false 
+      });
+    }
+  },
+
+  cancelSubscription: async (subscriptionId, reason) => {
+    console.log('🚫 Starting subscription cancellation:', { subscriptionId, reason });
+    try {
+      set({ isLoading: true, error: null });
+      console.log('⏳ Calling subscription service...');
+      const result = await subscriptionService.cancelSubscription(subscriptionId, reason);
+      console.log('✅ Subscription service response:', result);
+      
+      // Update subscription status to cancelled
+      const { subscription } = get();
+      if (subscription && subscription.id === subscriptionId) {
+        console.log('📝 Updating subscription status to cancelled');
+        set({ 
+          subscription: { ...subscription, status: 'cancelled' as const },
+          isLoading: false 
+        });
+      } else {
+        console.log('⚠️ No subscription found to update');
+        set({ isLoading: false });
+      }
+      
+      // Add notification
+      const { addNotification } = get();
+      console.log('🔔 Adding cancellation notification');
+      addNotification({
+        id: `cancellation_${Date.now()}`,
+        title: 'Абонемент отменён',
+        message: 'Ваш абонемент был успешно отменён',
+        type: 'general',
+        read: false,
+        date: new Date(),
+      });
+      
+      console.log('🎉 Subscription cancellation completed successfully');
+    } catch (error) {
+      console.error('❌ Error canceling subscription:', error);
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to cancel subscription',
+        isLoading: false 
+      });
+    }
+  },
+
+  dismissAlert: (alertType) => {
+    console.log('🏪 Store: Dismissing alert:', alertType);
+    set((state) => {
+      const newDismissedAlerts = new Set(Array.from(state.dismissedAlerts).concat([alertType]));
+      console.log('🏪 Store: New dismissedAlerts:', Array.from(newDismissedAlerts));
+      return {
+        dismissedAlerts: newDismissedAlerts
+      };
+    });
+  },
+
+  clearDismissedAlerts: () => set({ dismissedAlerts: new Set() }),
+
+  // Update subscription directly
+  updateSubscription: (subscription: Subscription) => {
+    set({ subscription });
+  },
+
+  // Add subscription history entry
+  addSubscriptionHistory: (historyItem: Omit<SubscriptionHistory, 'id'>) => {
+    const newHistoryItem: SubscriptionHistory = {
+      ...historyItem,
+      id: `hist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    };
+    
+    set((state) => ({
+      subscriptionHistory: [newHistoryItem, ...state.subscriptionHistory],
+    }));
+  },
+
+  // Show success notification and navigate to home
+  showSuccessNotification: (message: string, type: 'purchase' | 'renewal' | 'general' = 'general') => {
+    const notificationTypes = {
+      purchase: 'achievement' as const,
+      renewal: 'achievement' as const, 
+      general: 'general' as const,
+    };
+
+    // Add notification
+    get().addNotification({
+      id: `notif_${Date.now()}`,
+      title: type === 'purchase' ? '🎉 Покупка успешна!' : type === 'renewal' ? '🔄 Подписка обновлена!' : 'Успех!',
+      message,
+      type: notificationTypes[type],
+      read: false,
+      date: new Date(),
+    });
+
+    // Navigate to home
+    get().setCurrentPage('dashboard');
+  },
   
   addHomeTask: (task) => set((state) => ({
     homeTasks: [...state.homeTasks, task]
@@ -496,6 +737,62 @@ export const useAppStore = create<AppState>((set, get) => ({
     ),
     unreadCount: Math.max(0, state.unreadCount - 1)
   })),
+  
+  clearNotifications: () => set({
+    notifications: [],
+    unreadCount: 0
+  }),
+  
+  // Add some test notifications for demo
+  addTestNotifications: () => {
+    const testNotifications: Notification[] = [
+      {
+        id: 'test-1',
+        type: 'workout_reminder',
+        title: 'Время тренировки!',
+        message: 'Ваша тренировка "Силовая тренировка" начинается через 15 минут',
+        date: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
+        read: false
+      },
+      {
+        id: 'test-2',
+        type: 'achievement',
+        title: 'Новое достижение!',
+        message: 'Поздравляем! Вы выполнили 10 тренировок подряд',
+        date: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+        read: false
+      },
+      {
+        id: 'test-3',
+        type: 'program_update',
+        title: 'Обновление программы',
+        message: 'Ваша программа тренировок была обновлена тренером',
+        date: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+        read: true
+      },
+      {
+        id: 'test-4',
+        type: 'payment_due',
+        title: 'Напоминание об оплате',
+        message: 'Ваша подписка истекает через 3 дня. Продлите её сейчас',
+        date: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
+        read: false
+      },
+      {
+        id: 'test-5',
+        type: 'general',
+        title: 'Новые функции!',
+        message: 'Теперь вы можете отслеживать прогресс в новом разделе аналитики',
+        date: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+        read: true
+      }
+    ];
+    
+    set((state) => ({
+      notifications: [...testNotifications, ...state.notifications],
+      unreadCount: state.unreadCount + testNotifications.filter(n => !n.read).length
+    }));
+  },
   
   setLoading: (isLoading) => set({ isLoading }),
   
@@ -753,4 +1050,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   
   setChatLoading: (loading) => set({ chatLoading: loading }),
-})); 
+    }),
+    persistConfig
+  )
+); 
