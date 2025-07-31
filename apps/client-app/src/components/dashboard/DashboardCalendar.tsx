@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -13,15 +13,95 @@ import {
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import { useAppStore } from '../../store';
-import { Workout } from '../../types';
+import { Workout, CalendarFilters } from '../../types';
 
 type ViewMode = 'day' | 'week' | 'month';
 
-export const DashboardCalendar: React.FC = () => {
+interface DashboardCalendarProps {
+  filters?: CalendarFilters;
+  showFilters?: boolean;
+}
+
+export const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ 
+  filters: externalFilters,
+  showFilters = false 
+}) => {
   const workouts = useAppStore((state) => state.workouts);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('month');
+  
+  // Internal filters state (used when no external filters provided)
+  const [internalFilters, setInternalFilters] = useState<CalendarFilters>({
+    workoutTypes: [],
+    statuses: [],
+    trainers: [],
+    dateRange: {},
+    locations: [],
+    timeOfDay: [],
+  });
+
+  // Use external filters if provided, otherwise use internal filters
+  const activeFilters = externalFilters || internalFilters;
+  const setActiveFilters = externalFilters ? () => {} : setInternalFilters;
+
+  // Filter workouts based on active filters
+  const filteredWorkouts = useMemo(() => {
+    return workouts.filter(workout => {
+      // Filter by workout type
+      if (activeFilters.workoutTypes.length > 0 && !activeFilters.workoutTypes.includes(workout.type)) {
+        return false;
+      }
+
+      // Filter by status
+      if (activeFilters.statuses.length > 0 && !activeFilters.statuses.includes(workout.status)) {
+        return false;
+      }
+
+      // Filter by trainer
+      if (activeFilters.trainers.length > 0 && !activeFilters.trainers.includes(workout.trainer.id)) {
+        return false;
+      }
+
+      // Filter by location
+      if (activeFilters.locations.length > 0 && !activeFilters.locations.includes(workout.location)) {
+        return false;
+      }
+
+      // Filter by time of day
+      if (activeFilters.timeOfDay.length > 0) {
+        const hour = new Date(workout.date).getHours();
+        let timeOfDay: string;
+        if (hour < 12) timeOfDay = 'morning';
+        else if (hour < 17) timeOfDay = 'afternoon';
+        else timeOfDay = 'evening';
+        
+        if (!activeFilters.timeOfDay.includes(timeOfDay as any)) {
+          return false;
+        }
+      }
+
+      // Filter by date range
+      if (activeFilters.dateRange.startDate || activeFilters.dateRange.endDate) {
+        const workoutDate = new Date(workout.date);
+        workoutDate.setHours(0, 0, 0, 0); // Reset time for date comparison
+        
+        if (activeFilters.dateRange.startDate) {
+          const startDate = new Date(activeFilters.dateRange.startDate);
+          startDate.setHours(0, 0, 0, 0);
+          if (workoutDate < startDate) return false;
+        }
+        
+        if (activeFilters.dateRange.endDate) {
+          const endDate = new Date(activeFilters.dateRange.endDate);
+          endDate.setHours(23, 59, 59, 999);
+          if (workoutDate > endDate) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [workouts, activeFilters]);
 
   const navigateDate = (direction: 'prev' | 'next') => {
     const newDate = new Date(selectedDate);
@@ -38,7 +118,7 @@ export const DashboardCalendar: React.FC = () => {
   };
 
   const getWorkoutsForDate = (date: Date) => {
-    return workouts.filter(workout => {
+    return filteredWorkouts.filter(workout => {
       const workoutDate = new Date(workout.date);
       return workoutDate.toDateString() === date.toDateString();
     });

@@ -530,4 +530,27 @@ export interface Certification {
   issueDate: Date;
   expiryDate?: Date;
   certificateUrl?: string;
+}
+
+// Calendar Filter Types
+export interface CalendarFilters {
+  workoutTypes: WorkoutTypeFilter[];
+  statuses: WorkoutStatusFilter[];
+  trainers: string[];
+  dateRange: {
+    startDate?: Date;
+    endDate?: Date;
+  };
+  locations: string[];
+  timeOfDay: TimeOfDayFilter[];
+}
+
+export type WorkoutTypeFilter = 'strength' | 'cardio' | 'flexibility' | 'group' | 'personal';
+export type WorkoutStatusFilter = 'scheduled' | 'completed' | 'cancelled' | 'missed';
+export type TimeOfDayFilter = 'morning' | 'afternoon' | 'evening';
+
+export interface FilterOption {
+  value: string;
+  label: string;
+  count?: number;
 } 
