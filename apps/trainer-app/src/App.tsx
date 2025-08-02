@@ -9,6 +9,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('TrainerApp: Starting initialization...');
     // Initialize Telegram WebApp if available
     initTelegramApp();
     
@@ -17,8 +18,9 @@ function App() {
     
     // Simulate loading time for better UX
     setTimeout(() => {
+      console.log('TrainerApp: Initialization complete, showing dashboard');
       setIsLoading(false);
-    }, 1500);
+    }, 1000);
   }, [initializeData]);
 
   if (isLoading) {

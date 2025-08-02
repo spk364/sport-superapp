@@ -7,6 +7,7 @@ import {
   QrCodeIcon,
   UserIcon,
   CreditCardIcon,
+  BuildingOffice2Icon,
 } from '@heroicons/react/24/outline';
 import {
   HomeIcon as HomeIconSolid,
@@ -16,6 +17,7 @@ import {
   QrCodeIcon as QrCodeIconSolid,
   UserIcon as UserIconSolid,
   CreditCardIcon as CreditCardIconSolid,
+  BuildingOffice2Icon as BuildingOffice2IconSolid,
 } from '@heroicons/react/24/solid';
 import { useAppStore } from '../../store';
 
@@ -34,10 +36,10 @@ const navItems: NavItem[] = [
     activeIcon: HomeIconSolid,
   },
   {
-    id: 'subscription',
-    label: 'Абонемент',
-    icon: CreditCardIcon,
-    activeIcon: CreditCardIconSolid,
+    id: 'gyms',
+    label: 'Спортзалы',
+    icon: BuildingOffice2Icon,
+    activeIcon: BuildingOffice2IconSolid,
   },
   {
     id: 'progress',

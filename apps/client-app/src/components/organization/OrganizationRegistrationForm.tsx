@@ -25,6 +25,7 @@ import { ReviewStep } from './steps/ReviewStep';
 export interface OrganizationRegistrationFormProps {
   onSuccess?: (organizationId: string) => void;
   onCancel?: () => void;
+  onSwitchToSignIn?: () => void;
 }
 
 const STEPS = [
@@ -86,7 +87,8 @@ const STEPS = [
 
 export const OrganizationRegistrationForm: React.FC<OrganizationRegistrationFormProps> = ({
   onSuccess,
-  onCancel
+  onCancel,
+  onSwitchToSignIn
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -313,6 +315,28 @@ export const OrganizationRegistrationForm: React.FC<OrganizationRegistrationForm
             Заполните информацию о вашей организации для регистрации в системе
           </p>
         </div>
+
+        {/* Sign In Banner */}
+        {onSwitchToSignIn && (
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-6 mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  Уже есть аккаунт тренера?
+                </h3>
+                <p className="text-gray-600 text-sm">
+                  Войдите в существующий аккаунт вместо регистрации новой организации
+                </p>
+              </div>
+              <button
+                onClick={onSwitchToSignIn}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all font-medium whitespace-nowrap ml-4"
+              >
+                Войти в аккаунт
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Progress Steps */}
         <div className="mb-8">

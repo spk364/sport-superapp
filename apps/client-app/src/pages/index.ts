@@ -5,5 +5,17 @@ import { QRScanner } from './QRScanner';
 import { Profile } from './Profile';
 import { Calendar } from './Calendar';
 import { SubscriptionManagement } from './SubscriptionManagement';
+import GymDirectory from './GymDirectory';
+import GymDetail from './GymDetail';
 
-export { Dashboard as Home, Chat, Progress, QRScanner, Profile, Calendar, SubscriptionManagement }; 
+export { 
+  Dashboard as Home, 
+  Chat, 
+  Progress, 
+  QRScanner, 
+  Profile, 
+  Calendar, 
+  SubscriptionManagement,
+  GymDirectory,
+  GymDetail
+}; 

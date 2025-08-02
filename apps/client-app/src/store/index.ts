@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { User, Workout, Progress, Subscription, SubscriptionHistory, HomeTask, Note, Goal, Notification } from '../types';
+import { User, Workout, Progress, Subscription, SubscriptionHistory, HomeTask, Note, Goal, Notification, AuthUser, AuthError } from '../types';
 import { aiService, ConversationMessage } from '../services/aiService';
 import { subscriptionService, SubscriptionPlan } from '../services/subscriptionService';
+import { authService } from '../services/authService';
 
 // Date serialization helpers for localStorage
 const dateReviver = (key: string, value: any) => {
@@ -281,6 +282,7 @@ interface AppState {
   
   // Navigation
   currentPage: string;
+  currentPageParams: Record<string, any>;
   
   // Workouts
   workouts: Workout[];
@@ -317,10 +319,19 @@ interface AppState {
   error: string | null;
   isQuestionnaireActive: boolean;
   
+  // Authentication State
+  authUser: AuthUser | null;
+  authError: AuthError | null;
+  showAuthModal: boolean;
+  authMode: 'signin' | 'signup';
+  
   // Actions
   fetchUser: () => Promise<void>;
   setUser: (user: User | null) => void;
   setCurrentPage: (page: string) => void;
+  setCurrentPageWithParams: (page: string, params?: Record<string, any>) => void;
+  navigateToGymDirectory: () => void;
+  navigateToGymDetail: (gymId: string) => void;
   setWorkouts: (workouts: Workout[]) => void;
   setSelectedWorkout: (workout: Workout | null) => void;
   loadMockWorkouts: () => void;
@@ -359,6 +370,16 @@ interface AppState {
   addChatMessage: (message: ChatMessage) => void;
   clearChatHistory: (userId: string) => void;
   setChatLoading: (loading: boolean) => void;
+  
+  // Authentication actions
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  signUp: (firstName: string, lastName: string, email: string, password: string, phone?: string, role?: 'client' | 'trainer') => Promise<void>;
+  signOut: () => Promise<void>;
+  checkAuthStatus: () => void;
+  showAuth: (mode?: 'signin' | 'signup') => void;
+  hideAuth: () => void;
+  setAuthError: (error: AuthError | null) => void;
+  clearAuthError: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -368,6 +389,7 @@ export const useAppStore = create<AppState>()(
   user: null,
   isAuthenticated: false,
   currentPage: 'dashboard',
+  currentPageParams: {},
   workouts: [],
   selectedWorkout: null,
   progressData: [],
@@ -416,6 +438,13 @@ export const useAppStore = create<AppState>()(
   isLoading: false,
   error: null,
   isQuestionnaireActive: false,
+  
+  // Authentication State
+  authUser: null,
+  authError: null,
+  showAuthModal: false,
+  authMode: 'signin',
+  
   chatMessages: [],
   chatSession: null,
   chatLoading: false,
@@ -476,7 +505,22 @@ export const useAppStore = create<AppState>()(
 
   setUser: (user) => set({ user, isAuthenticated: !!user }),
   
-  setCurrentPage: (page) => set({ currentPage: page }),
+  setCurrentPage: (page) => set({ currentPage: page, currentPageParams: {} }),
+  
+  setCurrentPageWithParams: (page, params = {}) => set({ 
+    currentPage: page, 
+    currentPageParams: params 
+  }),
+  
+  navigateToGymDirectory: () => set({ 
+    currentPage: 'gyms', 
+    currentPageParams: {} 
+  }),
+  
+  navigateToGymDetail: (gymId) => set({ 
+    currentPage: 'gym-detail', 
+    currentPageParams: { id: gymId } 
+  }),
   
   setWorkouts: (workouts) => set({ workouts }),
   
@@ -1050,6 +1094,143 @@ export const useAppStore = create<AppState>()(
   },
   
   setChatLoading: (loading) => set({ chatLoading: loading }),
+
+  // Authentication actions
+  signIn: async (email, password, rememberMe = false) => {
+    set({ isLoading: true, authError: null });
+    try {
+      const response = await authService.signIn({ email, password, rememberMe });
+      
+      authService.setTokens(response.accessToken, response.refreshToken);
+      authService.setUser(response.user);
+      
+      set({
+        authUser: response.user,
+        isAuthenticated: true,
+        user: {
+          ...response.user,
+          role: response.user.role,
+          is_active: true,
+          created_at: response.user.createdAt.toISOString(),
+          updated_at: response.user.updatedAt.toISOString(),
+          name: `${response.user.firstName} ${response.user.lastName}`,
+          firstName: response.user.firstName,
+          lastName: response.user.lastName,
+        },
+        isLoading: false,
+        showAuthModal: false,
+        authError: null,
+      });
+    } catch (error: any) {
+      console.error('Sign in error:', error);
+      set({ 
+        authError: { message: error.message || 'Sign in failed' },
+        isLoading: false 
+      });
+    }
+  },
+
+  signUp: async (firstName, lastName, email, password, phone, role = 'client') => {
+    set({ isLoading: true, authError: null });
+    try {
+      const response = await authService.signUp({
+        firstName,
+        lastName,
+        email,
+        password,
+        confirmPassword: password,
+        phone,
+        role,
+        agreeToTerms: true,
+      });
+      
+      authService.setTokens(response.accessToken, response.refreshToken);
+      authService.setUser(response.user);
+      
+      set({
+        authUser: response.user,
+        isAuthenticated: true,
+        user: {
+          ...response.user,
+          role: response.user.role,
+          is_active: true,
+          created_at: response.user.createdAt.toISOString(),
+          updated_at: response.user.updatedAt.toISOString(),
+          name: `${response.user.firstName} ${response.user.lastName}`,
+          firstName: response.user.firstName,
+          lastName: response.user.lastName,
+        },
+        isLoading: false,
+        showAuthModal: false,
+        authError: null,
+      });
+    } catch (error: any) {
+      console.error('Sign up error:', error);
+      set({ 
+        authError: { message: error.message || 'Sign up failed' },
+        isLoading: false 
+      });
+    }
+  },
+
+  signOut: async () => {
+    set({ isLoading: true });
+    try {
+      await authService.signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    } finally {
+      authService.clearTokens();
+      authService.clearUser();
+      
+      set({
+        authUser: null,
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        currentPage: 'dashboard',
+        showAuthModal: true, // Show auth modal after sign out
+        authMode: 'signup', // Use signup mode to trigger role selection
+        authError: null,
+      });
+    }
+  },
+
+  checkAuthStatus: () => {
+    const isAuth = authService.isAuthenticated();
+    const storedUser = authService.getStoredUser();
+    
+    if (isAuth && storedUser) {
+      set({
+        authUser: storedUser,
+        isAuthenticated: true,
+        user: {
+          ...storedUser,
+          role: storedUser.role,
+          is_active: true,
+          created_at: storedUser.createdAt.toISOString(),
+          updated_at: storedUser.updatedAt.toISOString(),
+          name: `${storedUser.firstName} ${storedUser.lastName}`,
+          firstName: storedUser.firstName,
+          lastName: storedUser.lastName,
+        },
+      });
+    } else {
+      set({
+        authUser: null,
+        user: null,
+        isAuthenticated: false,
+      });
+    }
+  },
+
+  showAuth: (mode = 'signin') => set({ showAuthModal: true, authMode: mode }),
+  
+  hideAuth: () => set({ showAuthModal: false, authError: null }),
+  
+  setAuthError: (error) => set({ authError: error }),
+  
+  clearAuthError: () => set({ authError: null }),
     }),
     persistConfig
   )

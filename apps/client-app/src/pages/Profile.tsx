@@ -53,8 +53,8 @@ export const Profile: React.FC = () => {
   }, []);
 
   const handleLogout = () => {
-    // Implement logout logic
-    console.log('Logout clicked');
+    const signOut = useAppStore.getState().signOut;
+    signOut();
   };
 
   const handleQuestionnaireComplete = async (answers: Record<string, any>) => {

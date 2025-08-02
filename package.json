@@ -7,11 +7,15 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run trainer:dev\" \"npm run client:dev\"",
+    "dev": "npm run dev:client",
+    "dev:trainer": "npm run dev:trainer-only", 
+    "dev:client-only": "set PORT=3000 && npm run start --workspace=apps/client-app",
+    "dev:trainer-only": "set PORT=3000 && npm run start --workspace=apps/trainer-app",
+    "dev:both": "concurrently \"npm run dev:client-only\" \"sleep 5 && npm run dev:trainer-only\"",
     "dev:full": "concurrently \"npm run ai:dev\" \"npm run client:dev\" \"npm run trainer:dev\"",
     "dev:ai": "cd apps/virtual-trainer-app && source venv/bin/activate && python3 start_server.py",
-    "dev:client": "npm run start --workspace=apps/client-app",
-    "dev:trainer": "npm run start --workspace=apps/trainer-app",
+    "dev:client": "set PORT=3000 && npm run start --workspace=apps/client-app",
+    "dev:trainer": "set PORT=3000 && npm run start --workspace=apps/trainer-app",
     "build": "npm run build:all",
     "build:client": "npm run build --workspace=apps/client-app",
     "build:trainer": "npm run build --workspace=apps/trainer-app",

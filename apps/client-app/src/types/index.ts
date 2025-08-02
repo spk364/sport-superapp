@@ -553,4 +553,215 @@ export interface FilterOption {
   value: string;
   label: string;
   count?: number;
+}
+
+// Gym Discovery Types
+export interface Gym {
+  id: string;
+  name: string;
+  description: string;
+  sportTypes: GymSportType[];
+  location: GymLocation;
+  priceRange: {
+    min: number;
+    max: number;
+    currency: string;
+  };
+  photos: GymPhoto[];
+  amenities: string[];
+  rating: number;
+  reviewCount: number;
+  reviews: GymReview[];
+  contact: {
+    phone?: string;
+    email?: string;
+    website?: string;
+  };
+  workingHours: WorkingHours;
+  packages: GymPackage[];
+  verified: boolean;
+  featured: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type GymSportType = 
+  | 'bjj'
+  | 'boxing'
+  | 'mma'
+  | 'muay_thai'
+  | 'kickboxing'
+  | 'judo'
+  | 'karate'
+  | 'taekwondo'
+  | 'wrestling'
+  | 'jiu_jitsu'
+  | 'strength_training'
+  | 'cardio'
+  | 'crossfit'
+  | 'yoga'
+  | 'pilates'
+  | 'swimming'
+  | 'other';
+
+export interface GymLocation {
+  address: string;
+  city: string;
+  district?: string;
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+  distance?: number; // from user location in km
+}
+
+export interface GymPhoto {
+  id: string;
+  url: string;
+  alt: string;
+  type: 'main' | 'interior' | 'equipment' | 'exterior' | 'class';
+  order: number;
+}
+
+export interface GymReview {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  rating: number;
+  title?: string;
+  comment: string;
+  photos?: string[];
+  date: Date;
+  helpful: number;
+  verified: boolean;
+}
+
+export interface GymPackage {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  duration: number; // days
+  sessionsIncluded?: number;
+  features: string[];
+  popular: boolean;
+}
+
+export interface GymFilters {
+  location?: {
+    city?: string;
+    district?: string;
+    radius?: number; // km
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
+  };
+  sportTypes: GymSportType[];
+  priceRange: {
+    min: number;
+    max: number;
+  };
+  rating?: number;
+  amenities: string[];
+  verified?: boolean;
+  featured?: boolean;
+  sortBy: 'rating' | 'distance' | 'price_low' | 'price_high' | 'name' | 'newest';
+}
+
+export interface GymSearchParams {
+  query?: string;
+  filters: GymFilters;
+  page: number;
+  limit: number;
+}
+
+export interface GymSearchResult {
+  gyms: Gym[];
+  total: number;
+  page: number;
+  totalPages: number;
+  filters: {
+    sportTypes: FilterOption[];
+    priceRanges: FilterOption[];
+    amenities: FilterOption[];
+    cities: FilterOption[];
+    districts: FilterOption[];
+  };
+}
+
+// Authentication Types
+export interface AuthUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  avatar?: string;
+  role: 'client' | 'trainer' | 'admin';
+  isEmailVerified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SignInRequest {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
+export interface SignUpRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  phone?: string;
+  role: 'client' | 'trainer';
+  agreeToTerms: boolean;
+  subscribeToNewsletter?: boolean;
+  // Trainer-specific fields
+  businessName?: string;
+  specializations?: string[];
+  certifications?: string[];
+  experience?: string;
+  bio?: string;
+}
+
+export interface AuthResponse {
+  user: AuthUser;
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+}
+
+export interface AuthError {
+  field?: string;
+  message: string;
+  code?: string;
+}
+
+export interface PasswordResetRequest {
+  email: string;
+}
+
+export interface PasswordResetConfirm {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface EmailVerificationRequest {
+  token: string;
+}
+
+export interface AuthState {
+  isAuthenticated: boolean;
+  user: AuthUser | null;
+  isLoading: boolean;
+  error: AuthError | null;
+  accessToken: string | null;
+  refreshToken: string | null;
 } 
