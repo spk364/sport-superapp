@@ -427,18 +427,18 @@ export interface ContactInfo {
 }
 
 export interface WorkingHours {
-  monday?: TimeSlot;
-  tuesday?: TimeSlot;
-  wednesday?: TimeSlot;
-  thursday?: TimeSlot;
-  friday?: TimeSlot;
-  saturday?: TimeSlot;
-  sunday?: TimeSlot;
+  monday?: WorkingHoursSlot;
+  tuesday?: WorkingHoursSlot;
+  wednesday?: WorkingHoursSlot;
+  thursday?: WorkingHoursSlot;
+  friday?: WorkingHoursSlot;
+  saturday?: WorkingHoursSlot;
+  sunday?: WorkingHoursSlot;
   is24Hours?: boolean;
   holidays?: string[];
 }
 
-export interface TimeSlot {
+export interface WorkingHoursSlot {
   open: string; // HH:MM
   close: string; // HH:MM
   isOpen: boolean;
@@ -764,4 +764,241 @@ export interface AuthState {
   error: AuthError | null;
   accessToken: string | null;
   refreshToken: string | null;
+} 
+
+// Trainer Directory Types
+export interface Trainer {
+  id: string;
+  firstName: string;
+  lastName: string;
+  avatar?: string;
+  bio?: string;
+  specializations: TrainerSpecialization[];
+  experience: number; // years
+  certifications: TrainerCertification[];
+  rating: number;
+  reviewCount: number;
+  reviews: TrainerReview[];
+  availability: TrainerAvailability;
+  contact: TrainerContact;
+  location: TrainerLocation;
+  pricing: TrainerPricing;
+  languages: string[];
+  isActive: boolean;
+  isVerified: boolean;
+  isFeatured: boolean;
+  joinDate: Date;
+  lastActive: Date;
+  stats: TrainerStats;
+}
+
+export type TrainerSpecialization = 
+  | 'strength_training'
+  | 'cardio'
+  | 'yoga'
+  | 'pilates'
+  | 'martial_arts'
+  | 'boxing'
+  | 'swimming'
+  | 'running'
+  | 'crossfit'
+  | 'bodybuilding'
+  | 'powerlifting'
+  | 'gymnastics'
+  | 'dance'
+  | 'stretching'
+  | 'rehabilitation'
+  | 'nutrition'
+  | 'weight_loss'
+  | 'muscle_gain'
+  | 'flexibility'
+  | 'endurance'
+  | 'sports_specific'
+  | 'senior_fitness'
+  | 'prenatal_postnatal'
+  | 'kids_fitness'
+  | 'functional_fitness'
+  | 'meditation'
+  | 'other';
+
+export interface TrainerCertification {
+  id: string;
+  name: string;
+  issuer: string;
+  issueDate: Date;
+  expiryDate?: Date;
+  certificateUrl?: string;
+  isVerified: boolean;
+}
+
+export interface TrainerReview {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  rating: number;
+  title?: string;
+  comment: string;
+  photos?: string[];
+  date: Date;
+  helpful: number;
+  verified: boolean;
+  sessionType?: string;
+  sessionDate?: Date;
+}
+
+export interface TrainerAvailability {
+  schedule: WeeklySchedule;
+  timeSlots: TrainerTimeSlot[];
+  timezone: string;
+  isAvailable: boolean;
+  nextAvailableSlot?: Date;
+  customAvailability?: string;
+}
+
+export interface WeeklySchedule {
+  monday: DaySchedule;
+  tuesday: DaySchedule;
+  wednesday: DaySchedule;
+  thursday: DaySchedule;
+  friday: DaySchedule;
+  saturday: DaySchedule;
+  sunday: DaySchedule;
+}
+
+export interface DaySchedule {
+  isAvailable: boolean;
+  slots: TrainerTimeSlot[];
+  notes?: string;
+}
+
+export interface TrainerTimeSlot {
+  startTime: string; // HH:MM
+  endTime: string; // HH:MM
+  isAvailable: boolean;
+  sessionType?: 'personal' | 'group' | 'online';
+  maxParticipants?: number;
+}
+
+export interface TrainerContact {
+  phone?: string;
+  email?: string;
+  telegram?: string;
+  whatsapp?: string;
+  instagram?: string;
+  website?: string;
+  preferredContact: 'phone' | 'email' | 'telegram' | 'whatsapp' | 'instagram';
+}
+
+export interface TrainerLocation {
+  city: string;
+  district?: string;
+  address?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+  travelRadius?: number; // km
+  homeVisits: boolean;
+  onlineSessions: boolean;
+  gymLocations?: string[];
+}
+
+export interface TrainerPricing {
+  personalSession: number;
+  groupSession?: number;
+  onlineSession?: number;
+  packageDiscounts: PackageDiscount[];
+  currency: string;
+  paymentMethods: PaymentMethod[];
+  freeConsultation: boolean;
+  consultationDuration?: number; // minutes
+}
+
+export interface PackageDiscount {
+  sessions: number;
+  discount: number; // percentage
+  price: number;
+  validDays: number;
+}
+
+export interface TrainerStats {
+  totalSessions: number;
+  totalClients: number;
+  averageRating: number;
+  responseTime: number; // minutes
+  completionRate: number; // percentage
+  repeatClientRate: number; // percentage
+}
+
+export interface TrainerFilters {
+  specializations: TrainerSpecialization[];
+  experience: {
+    min: number;
+    max: number;
+  };
+  rating: number;
+  priceRange: {
+    min: number;
+    max: number;
+  };
+  city?: string;
+  location?: {
+    city?: string;
+    district?: string;
+    radius?: number; // km
+    coordinates?: {
+      lat: number;
+      lng: number;
+    };
+  };
+  availability?: {
+    dayOfWeek?: number; // 0-6 (Sunday-Saturday)
+    timeSlot?: string; // HH:MM
+  };
+  sessionType: ('personal' | 'group' | 'online')[];
+  languages: string[];
+  verified?: boolean;
+  featured?: boolean;
+  sortBy: 'rating' | 'experience' | 'price_low' | 'price_high' | 'distance' | 'response_time' | 'availability';
+}
+
+export interface TrainerSearchParams {
+  query?: string;
+  filters: TrainerFilters;
+  page: number;
+  limit: number;
+}
+
+export interface TrainerSearchResult {
+  trainers: Trainer[];
+  total: number;
+  page: number;
+  totalPages: number;
+  filters: {
+    specializations: FilterOption[];
+    experienceRanges: FilterOption[];
+    priceRanges: FilterOption[];
+    cities: FilterOption[];
+    districts: FilterOption[];
+    languages: FilterOption[];
+  };
+}
+
+export interface TrainerBookingRequest {
+  trainerId: string;
+  sessionType: 'personal' | 'group' | 'online';
+  date: Date;
+  timeSlot: string;
+  duration: number; // minutes
+  location?: string;
+  notes?: string;
+  packageId?: string;
+}
+
+export interface TrainerBookingResponse {
+  bookingId: string;
+  status: 'pending' | 'confirmed' | 'declined' | 'cancelled';
+  trainerResponse?: string;
+  responseTime?: Date;
 } 

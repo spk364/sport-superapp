@@ -7,6 +7,8 @@ import { Calendar } from './Calendar';
 import { SubscriptionManagement } from './SubscriptionManagement';
 import GymDirectory from './GymDirectory';
 import GymDetail from './GymDetail';
+import TrainerDirectory from './TrainerDirectory';
+import TrainerDetail from './TrainerDetail';
 
 export { 
   Dashboard as Home, 
@@ -17,5 +19,7 @@ export {
   Calendar, 
   SubscriptionManagement,
   GymDirectory,
-  GymDetail
+  GymDetail,
+  TrainerDirectory,
+  TrainerDetail
 }; 
